@@ -65,7 +65,7 @@ npm run build && npx next start -p 3001
 
 | ID | What to check | How | Expected | Who | Status | Notes |
 |----|---------------|-----|----------|:---:|:------:|-------|
-| B3-17 | Repo exists and is private | `gh repo view habibit` | Private repo, 4 commits | 🤖 | ⬜ | Pending your go-ahead — pushing is the first outward-facing step |
+| B3-17 | Repo exists and is public | `gh repo view habibit` | Public repo, 4 commits, icons present | 🤖 | ✅ | [github.com/avangardewashere/habibit](https://github.com/avangardewashere/habibit) — 49 files, scanned for secrets before pushing |
 | B3-18 | Vercel deploy succeeds | vercel.com/new → Import `habibit` → **Deploy** | Build passes, you get a `https://….vercel.app` URL | 👤 | ⬜ | **Yours** — I can't sign into your Vercel account. ~2 min, no configuration needed |
 | B3-19 | Deployed build has no dev leftovers | Open the live URL | Same app, no Next dev overlay | 👤 | ⬜ | |
 
@@ -95,8 +95,8 @@ npm run build && npx next start -p 3001
 
 ## Summary
 
-**Automated (🤖):** 14 ✅ / 0 ❌
-**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 17 rows, of which **B3-15** is the one I'd most like your opinion on
+**Automated (🤖):** 15 ✅ / 0 ❌
+**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 16 rows, of which **B3-15** is the one I'd most like your opinion on
 
 ### Blockers
 -
@@ -108,7 +108,7 @@ npm run build && npx next start -p 3001
 
 ## How to deploy (your two minutes)
 
-Once I've pushed the repo:
+The repo is pushed: **github.com/avangardewashere/habibit**
 
 1. Go to **vercel.com/new**
 2. Sign in with GitHub, grant access to the `habibit` repo if asked
