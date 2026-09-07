@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+/*
+ * Brand tokens. Tailwind v4 is CSS-first: these generate the utilities
+ * (bg-cream, text-ink-soft, rounded-card, ...) with no tailwind.config.js.
+ *
+ * Coral over red, because red reads as *error* and coral reads as *warmth*.
+ * Cream over white and warm-black over #000, because pure values are what make
+ * an interface feel cold.
+ */
+@theme {
+  --color-habibit-50: #FFF1F0;
+  --color-habibit-100: #FFE1DF;
+  --color-habibit-400: #FF8189;
+  --color-habibit-500: #F2545B;
+  --color-habibit-600: #D93B4E;
+
+  --color-cream: #FFFBF7;
+  --color-ink: #2B2024;
+  --color-ink-soft: #8A7A80;
+  --color-line: #F3E7E4;
+
+  --font-display: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* >= 16px or iOS Safari zooms the viewport on focus and never zooms back. */
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+}
