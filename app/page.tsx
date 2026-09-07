@@ -1,7 +1,14 @@
+import { HabitSection } from '@/components/habit/HabitSection';
+import { AppShell } from '@/components/layout/AppShell';
+import { Header } from '@/components/layout/Header';
+import { TaskSection } from '@/components/task/TaskSection';
+
 export default function Home() {
   return (
-    <main>
-      <div>Hello world!</div>
-    </main>
+    <AppShell>
+      <Header />
+      <HabitSection />
+      <TaskSection />
+    </AppShell>
   );
 }
