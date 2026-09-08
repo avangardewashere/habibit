@@ -21,26 +21,44 @@ export function HabibitProvider({ children }: { children: ReactNode }) {
   const [saveFailed, setSaveFailed] = useState(false);
 
   /**
-   * Guards the save effect below. Without it, that effect fires once on mount
-   * with the *empty* initial state and overwrites everything the user had.
-   * This is the classic way persistence ships broken: it looks fine until you
-   * already have data worth losing.
+   * The exact state object that storage currently holds — either what we just
+   * read out of it, or what we last wrote into it. Compared by reference.
    */
-  const hydrated = useRef(false);
+  const persisted = useRef<HabibitState | null>(null);
 
   const hydrate = useCallback(() => {
     const stored = loadState();
-    if (stored) dispatch({ type: 'HYDRATE', state: stored });
+    if (!stored) return;
+    // Recorded *before* dispatching, so the save effect below can tell that this
+    // state came out of storage and does not need writing back.
+    persisted.current = stored;
+    dispatch({ type: 'HYDRATE', state: stored });
   }, []);
 
   // Before paint, so a returning user never sees a flash of the empty state.
   useIsomorphicLayoutEffect(() => {
     hydrate();
-    hydrated.current = true;
   }, [hydrate]);
 
   useEffect(() => {
-    if (!hydrated.current) return;
+    /*
+     * Two guards, both by object identity rather than by a "have we hydrated
+     * yet" flag. A flag is not enough: the save effect belonging to the very
+     * first render closes over the empty `initialState`, and can still run
+     * after the flag has been set — React StrictMode does this every time, and
+     * concurrent rendering can do it in production. That wipes real data.
+     * Deriving the decision from the state itself removes the race entirely.
+     */
+
+    // Nothing has happened yet. `initialState` is a module constant, so this is
+    // only ever true before the first hydrate or edit.
+    if (state === initialState) return;
+
+    // This state came *from* storage, so writing it back would be a no-op — and
+    // in the multi-tab case an endless write/notify/write loop between tabs.
+    if (state === persisted.current) return;
+
+    persisted.current = state;
     setSaveFailed(!saveState(state));
   }, [state]);
 

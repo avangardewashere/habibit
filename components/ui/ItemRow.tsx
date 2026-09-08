@@ -75,7 +75,12 @@ export function ItemRow({
           onClick={onRemove}
           aria-label={confirmLabel}
           autoFocus
-          onBlur={() => setConfirming(false)}
+          /*
+           * Deliberately no onBlur cancel. Blur fires before the row's click,
+           * so cancelling there would disarm first and let the click fall
+           * through to the toggle — tapping "somewhere else to cancel" would
+           * tick the habit off instead. The timeout is the safety net.
+           */
           className="min-h-11 shrink-0 touch-manipulation rounded-full bg-habibit-600 px-3 text-xs font-extrabold text-white transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-habibit-500"
         >
           Delete?
