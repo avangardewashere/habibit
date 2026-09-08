@@ -16,6 +16,12 @@ export const initialState: HabibitState = {
  * now while it costs nothing.
  */
 export type HabibitAction =
+  /**
+   * Replace everything, used when loading from storage or when another tab
+   * writes. The state is validated at the storage boundary, so by the time it
+   * reaches here it is already trusted.
+   */
+  | { type: 'HYDRATE'; state: HabibitState }
   | { type: 'ADD_HABIT'; title: string; emoji?: string | null }
   | { type: 'REMOVE_HABIT'; id: string }
   | { type: 'TOGGLE_COMPLETION'; habitId: string; dateKey: DateKey }
@@ -26,6 +32,9 @@ export type HabibitAction =
 /** Pure. Never mutates `state`. Testable with no React and no DOM. */
 export function habibitReducer(state: HabibitState, action: HabibitAction): HabibitState {
   switch (action.type) {
+    case 'HYDRATE':
+      return action.state;
+
     case 'ADD_HABIT': {
       const title = action.title.trim();
       if (!title) return state;

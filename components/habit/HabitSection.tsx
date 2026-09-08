@@ -58,6 +58,7 @@ export function HabitSection() {
                 }
                 onRemove={() => dispatch({ type: 'REMOVE_HABIT', id: habit.id })}
                 removeLabel={`Delete habit: ${habit.title}`}
+                confirmLabel={`Confirm deleting ${habit.title} and its whole completion history`}
               />
             ))}
           </ul>

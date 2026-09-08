@@ -208,3 +208,47 @@ describe('purity', () => {
     expect(habibitReducer(state, { type: 'ADD_HABIT', title: '  ' })).toBe(state);
   });
 });
+
+describe('HYDRATE', () => {
+  it('replaces the whole state', () => {
+    const seeded = run([
+      { type: 'ADD_HABIT', title: 'Old' },
+      { type: 'ADD_TASK', title: 'Old task' },
+    ]);
+    const incoming = run([{ type: 'ADD_HABIT', title: 'From storage' }]);
+
+    const next = habibitReducer(seeded, { type: 'HYDRATE', state: incoming });
+
+    expect(next).toEqual(incoming);
+    expect(next.habits.map((h) => h.title)).toEqual(['From storage']);
+    expect(next.tasks).toHaveLength(0);
+  });
+
+  it('does not mutate either state', () => {
+    const seeded = run([{ type: 'ADD_HABIT', title: 'Old' }]);
+    const incoming = run([{ type: 'ADD_HABIT', title: 'New' }]);
+    const seededSnapshot = structuredClone(seeded);
+    const incomingSnapshot = structuredClone(incoming);
+
+    habibitReducer(seeded, { type: 'HYDRATE', state: incoming });
+
+    expect(seeded).toEqual(seededSnapshot);
+    expect(incoming).toEqual(incomingSnapshot);
+  });
+
+  it('round-trips through the reducer after being restored', () => {
+    const restored = habibitReducer(initialState, {
+      type: 'HYDRATE',
+      state: run([{ type: 'ADD_HABIT', title: 'Water' }]),
+    });
+    const id = restored.habits[0].id;
+
+    const toggled = habibitReducer(restored, {
+      type: 'TOGGLE_COMPLETION',
+      habitId: id,
+      dateKey: DAY_A,
+    });
+
+    expect(isCompleted(toggled, id, DAY_A)).toBe(true);
+  });
+});

@@ -46,6 +46,7 @@ export function TaskSection() {
                 onToggle={() => dispatch({ type: 'TOGGLE_TASK', id: task.id })}
                 onRemove={() => dispatch({ type: 'REMOVE_TASK', id: task.id })}
                 removeLabel={`Delete task: ${task.title}`}
+                confirmLabel={`Confirm deleting ${task.title}`}
               />
             ))}
           </ul>
