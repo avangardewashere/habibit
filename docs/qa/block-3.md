@@ -16,6 +16,15 @@
 > in v12, precisely because Chrome simplified the install rules. Use
 > **DevTools → Application → Manifest** instead.
 
+## Platform scope
+
+**Supported and required: Android (Chrome) and desktop.** These must pass.
+
+**iOS / Safari is nice-to-have and never required.** The tester has no iOS device, so
+those rows are marked ⏭️. The code still ships full iOS support — `apple-icon.png`,
+`apple-mobile-web-app-title`, `statusBarStyle`, and 16px inputs are all in place — it is
+simply unverified on real hardware, and no iOS-only failure should ever block a release.
+
 ---
 
 # Part A — Local (done)
@@ -66,20 +75,20 @@ npm run build && npx next start -p 3001
 | ID | What to check | How | Expected | Who | Status | Notes |
 |----|---------------|-----|----------|:---:|:------:|-------|
 | B3-17 | Repo exists and is public | `gh repo view habibit` | Public repo, 4 commits, icons present | 🤖 | ✅ | [github.com/avangardewashere/habibit](https://github.com/avangardewashere/habibit) — 49 files, scanned for secrets before pushing |
-| B3-18 | Vercel deploy succeeds | vercel.com/new → Import `habibit` → **Deploy** | Build passes, you get a `https://….vercel.app` URL | 👤 | ⬜ | **Yours** — I can't sign into your Vercel account. ~2 min, no configuration needed |
-| B3-19 | Deployed build has no dev leftovers | Open the live URL | Same app, no Next dev overlay | 👤 | ⬜ | |
+| B3-18 | Vercel deploy succeeds | vercel.com/new → Import `habibit` → **Deploy** | Build passes, you get a live URL | 👤 | ✅ | **https://habibit.vercel.app** — valid TLS, all 7 routes 200 |
+| B3-19 | Deployed build has no dev leftovers | Open the live URL | Same app, no Next dev overlay | 🤖 | ✅ | No dev overlay in the DOM |
 
-## B2. Installing it
+## B2. Installing it — **Android + desktop are the ones that matter**
 
 | ID | What to check | How | Expected | Who | Status | Notes |
 |----|---------------|-----|----------|:---:|:------:|-------|
 | B3-20 | Desktop Chrome offers install | Open the live URL → ⋮ menu | **Install Habibit** appears | 👤 | ⬜ | Note: no *automatic* prompt will pop — see "Known limits" below |
-| B3-21 | Android install | Chrome on the phone → ⋮ → Install app | Installs; icon on the home screen | 👤 | ⬜ | Skip if you're on iOS |
-| B3-22 | iOS install | Safari → Share → **Add to Home Screen** | Sheet shows **"Habibit"** and your heart icon | 👤 | ⬜ | Must be Safari; Chrome on iOS can't install |
-| B3-23 | Icon on the home screen | Look at it among your other apps | Sharp, correctly shaped, not letterboxed or double-rounded | 👤 | ⬜ | |
+| B3-21 | **Android install** | Chrome on the phone → ⋮ → **Install app** | Installs; heart icon on the home screen | 👤 | ⬜ | ⭐ **The main event for your setup** |
+| B3-22 | iOS install | Safari → Share → Add to Home Screen | Sheet shows "Habibit" and the heart icon | 👤 | ⏭️ | **Not required** — no iOS device. Code supports it; just unverified |
+| B3-23 | Icon on the home screen | Look at it among your other apps | Sharp, correctly shaped, not letterboxed or double-rounded | 👤 | ⬜ | Android applies its own mask to the maskable variant — this is what B3-14 was protecting |
 | B3-24 | Launches like an app | Tap the home-screen icon | **No address bar, no browser chrome** | 👤 | ⬜ | This is the payoff of `display: standalone` |
 | B3-25 | Status bar blends | Look at the top of the screen once launched | Cream status bar, **no visible seam** above the wordmark | 👤 | ⬜ | Your colour choice — worth confirming it looks how you pictured |
-| B3-26 | Nothing hidden by the notch | Scroll to the bottom; rotate to landscape | Last row clears the home indicator; nothing under the notch in landscape | 👤 | ⬜ | |
+| B3-26 | Nothing hidden by system UI | Scroll to the bottom; rotate to landscape | Last row clears the gesture bar; nothing under a punch-hole or notch in landscape | 👤 | ⬜ | Applies to Android gesture navigation too, not just iPhones |
 | B3-27 | Survives a restart | Restart the phone, tap the icon | Still opens standalone | 👤 | ⬜ | |
 
 ## B3. The app still works in production
@@ -87,7 +96,7 @@ npm run build && npx next start -p 3001
 | ID | What to check | How | Expected | Who | Status | Notes |
 |----|---------------|-----|----------|:---:|:------:|-------|
 | B3-28 | Core flows intact | Add habits and tasks, check, delete | Everything from Block 2 behaves identically | 👤 | ⬜ | |
-| B3-29 | No zoom on input tap | Tap **Add a habit…** on a real iPhone | Page does **not** zoom | 👤 | ⬜ | The row Block 2 couldn't finish without a real device |
+| B3-29 | No zoom on input tap | Tap **Add a habit…** | Page does **not** zoom | 👤 | ⏭️ | **Not required.** This is an iOS Safari behaviour; Android Chrome never focus-zooms. The 16px fix is verified in place either way |
 | B3-30 | No horizontal scroll | Add a very long habit title | Wraps; no sideways scroll | 👤 | ⬜ | |
 | B3-31 | Loads on mobile data | Turn Wi-Fi off, open the app | Loads fine | 👤 | ⬜ | It needs a connection — there's no offline support in v0 |
 
@@ -95,8 +104,10 @@ npm run build && npx next start -p 3001
 
 ## Summary
 
-**Automated (🤖):** 15 ✅ / 0 ❌
-**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 16 rows, of which **B3-15** is the one I'd most like your opinion on
+**Automated (🤖):** 17 ✅ / 0 ❌
+**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 12 required rows (2 more are ⏭️ iOS, not required)
+
+The one to actually do: **B3-21**, installing it on your Android phone.
 
 ### Blockers
 -
@@ -106,19 +117,19 @@ npm run build && npx next start -p 3001
 
 ---
 
-## How to deploy (your two minutes)
+## Shipped
 
-The repo is pushed: **github.com/avangardewashere/habibit**
+| | |
+|---|---|
+| **Live** | **https://habibit.vercel.app** |
+| **Repo** | https://github.com/avangardewashere/habibit (public) |
+| **Host** | Vercel free tier — comfortably covers 1000+ users of a static page |
 
-1. Go to **vercel.com/new**
-2. Sign in with GitHub, grant access to the `habibit` repo if asked
-3. Click **Import** next to `habibit`
-4. Change nothing — Next.js is auto-detected
-5. Click **Deploy**, wait ~90 seconds
-6. Copy the `https://….vercel.app` URL and open it on your phone
+Verified against the live HTTPS origin: valid TLS, all 7 routes 200, every installability precondition
+met, no dev overlay, and the full Block 2 feature set behaving identically in production (multi-line CRLF
+paste, progress badge, long-title wrapping, no horizontal scroll, 16px inputs, 44px minimum targets).
 
-The free tier covers far more traffic than 1000 users of a static page, and HTTPS is included — which is
-the thing that makes the app installable.
+**To install on Android:** open the URL in Chrome → ⋮ → **Install app**.
 
 ---
 
