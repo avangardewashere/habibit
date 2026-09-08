@@ -13,8 +13,8 @@ export function CheckCircle({ checked }: { checked: boolean }) {
       className={[
         'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 transition-all duration-150',
         checked
-          ? 'scale-100 border-habibit-500 bg-habibit-500 text-white'
-          : 'border-line bg-white text-transparent',
+          ? 'scale-100 border-accent bg-accent text-on-accent'
+          : 'border-line bg-card text-transparent',
       ].join(' ')}
     >
       <Check className="h-4 w-4" strokeWidth={3.5} />

@@ -17,9 +17,9 @@ export function SaveWarning() {
   return (
     <p
       role="alert"
-      className="mb-5 flex items-start gap-2 rounded-card border border-habibit-500 bg-habibit-50 px-4 py-3 text-sm text-ink"
+      className="mb-5 flex items-start gap-2 rounded-card border border-accent bg-badge-bg px-4 py-3 text-sm text-ink"
     >
-      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-habibit-600" strokeWidth={2.5} />
+      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-danger" strokeWidth={2.5} />
       <span>
         <strong className="font-bold">Not saving.</strong> Your browser is blocking storage or is out
         of room, so changes will be lost when you close this tab.

@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-cream">
+    <div className="min-h-dvh bg-surface">
       <div className="mx-auto flex w-full max-w-md flex-col pt-[max(2.5rem,env(safe-area-inset-top))] pr-[max(1.25rem,env(safe-area-inset-right))] pb-[max(2.5rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))]">
         {children}
       </div>

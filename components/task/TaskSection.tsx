@@ -30,7 +30,7 @@ export function TaskSection() {
         }
       />
 
-      <div className="overflow-hidden rounded-card border border-line bg-white">
+      <div className="overflow-hidden rounded-card border border-line bg-card">
         {tasks.length === 0 ? (
           <EmptyState
             title="Nothing on the list"

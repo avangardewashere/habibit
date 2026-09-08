@@ -28,9 +28,10 @@ type Envelope = { version: number; state: HabibitState };
 
 /**
  * Accessing `localStorage` can itself throw — some privacy modes and enterprise
- * policies make the property access fail, not just the read.
+ * policies make the property access fail, not just the read. Exported so the
+ * theme preference goes through the same guarded accessor.
  */
-function getStore(): Storage | null {
+export function getStore(): Storage | null {
   try {
     return typeof globalThis.localStorage === 'undefined' ? null : globalThis.localStorage;
   } catch {

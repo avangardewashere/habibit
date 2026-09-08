@@ -30,8 +30,8 @@ export function HabitSection() {
               className={[
                 'rounded-full px-2 py-0.5 text-xs font-extrabold tabular-nums transition-colors',
                 done === habits.length
-                  ? 'bg-habibit-500 text-white'
-                  : 'bg-habibit-50 text-habibit-600',
+                  ? 'bg-badge-done-bg text-badge-done-fg'
+                  : 'bg-badge-bg text-badge-fg',
               ].join(' ')}
             >
               {done}/{habits.length}
@@ -40,7 +40,7 @@ export function HabitSection() {
         }
       />
 
-      <div className="overflow-hidden rounded-card border border-line bg-white">
+      <div className="overflow-hidden rounded-card border border-line bg-card">
         {habits.length === 0 ? (
           <EmptyState
             title="No habits yet"

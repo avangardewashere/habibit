@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Nunito } from 'next/font/google';
 import './globals.css';
+import { THEME_COLOURS, THEME_INIT_SCRIPT } from '@/lib/theme';
 import { HabibitProvider } from '@/store/HabibitProvider';
 
 const nunito = Nunito({
@@ -16,15 +17,21 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Habibit',
-    // The status bar is cream like the app, so it wants dark text: `default`.
     statusBarStyle: 'default',
   },
 };
 
 export const viewport: Viewport = {
-  // Tints the status bar in standalone mode. Cream matches the page, so there
-  // is no seam between the system bar and the app.
-  themeColor: '#FFFBF7',
+  /*
+   * Two entries so the status bar follows the device before any JavaScript
+   * runs. Once the app knows the real preference, lib/theme.ts replaces these
+   * with a single unconditional meta — otherwise forcing dark on a light phone
+   * would leave a cream status bar above a plum app.
+   */
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: THEME_COLOURS.light },
+    { media: '(prefers-color-scheme: dark)', color: THEME_COLOURS.dark },
+  ],
   width: 'device-width',
   initialScale: 1,
   /*
@@ -43,6 +50,11 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={nunito.variable}>
       <body>
+        {/*
+          Runs before the first paint. Without it, anyone using dark mode gets a
+          full white flash on every load while waiting for React to hydrate.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HabibitProvider>{children}</HabibitProvider>
       </body>
     </html>

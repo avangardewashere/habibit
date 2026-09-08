@@ -53,22 +53,49 @@ why the tab icon stays vector so it renders crisply wherever the display allows.
 The plate was originally dark plum `#241726`; it is now **cream**, so that the icon, the app background and
 the phone's status bar are one continuous surface when Habibit is installed.
 
-| Role | Hex | Where |
-|---|---|---|
-| `habibit-400` | `#FF8189` | Top two rows of the heart |
-| `habibit-500` | `#F2545B` | Middle rows — the primary brand colour |
-| `habibit-600` | `#D93B4E` | Bottom rows; pressed and active states in the UI |
-| `cream` | `#FFFBF7` | Icon plate, page background, `theme_color`, `background_color` |
-| `ink` | `#2B2024` | Body text |
-| `ink-soft` | `#8A7A80` | Secondary text |
+The palette is deliberately in two halves, and `app/globals.css` keeps them apart.
 
-The `--color-habibit-*` tokens in `app/globals.css` are these exact values, so the UI and the home-screen
-icon are the same coral rather than two coincidentally similar ones.
+**Brand scale** — fixed identity, identical in both themes, matching the icon exactly:
+
+| Token | Hex | Where |
+|---|---|---|
+| `habibit-400` | `#FF8189` | Top two rows of the heart; the accent in dark mode |
+| `habibit-500` | `#F2545B` | Middle rows — the primary brand colour, and the wordmark in both themes |
+| `habibit-600` | `#D93B4E` | Bottom rows of the heart |
+
+**Semantic roles** — what the UI actually references, and what flips between themes:
+
+| Role | Light | Dark |
+|---|---|---|
+| `surface` (page) | `#FFFBF7` cream | `#241726` plum |
+| `card` | `#FFFFFF` | `#2E1F2A` |
+| `ink` | `#2B2024` | `#F5EDEA` |
+| `ink-soft` | `#7A6A72` | `#A2909A` |
+| `line` | `#F3E7E4` | `#3A2A33` |
+| `accent` / `on-accent` | `#F2545B` / `#FFFFFF` | `#FF8189` / `#241726` |
+| `badge-bg` / `badge-fg` | `#FFF1F0` / `#AD2E3E` | `#3A2430` / `#FF8189` |
+| `badge-done-bg` / `-fg` | `#C93247` / `#FFFFFF` | `#FF8189` / `#241726` |
+| `danger` / `on-danger` | `#C93247` / `#FFFFFF` | same — a filled pill carries its own contrast |
+
+Splitting them this way is what makes dark mode a variable swap rather than a component
+rewrite: Tailwind v4 compiles utilities to `var(--color-*)`, so redefining the variables
+re-themes everything with no component changes.
+
+**Dark mode's ground is `#241726`** — the plum the icon's plate used to be, before it went
+cream in Block 3. Nothing about the original design went to waste.
+
+**Every pair above is asserted against WCAG AA by `lib/contrast.test.ts`**, which parses this
+project's real stylesheet. v0 shipped with six pairs below AA — the worst being placeholder
+text at 2.29:1 — and that test exists so it cannot happen quietly again.
 
 **A known consequence of the cream plate.** The gradient was drawn against dark plum, where the *light* top
 row carried the contrast. On cream that inverts — the bottom gains contrast and the top row goes softer. It
 still reads as an intentional fade at full size. If it ever looks washed out, darkening `habibit-400` is a
 one-line change in the source SVG.
+
+**`ink-soft` changed in v0.5** from `#8A7A80` to `#7A6A72`. The original was 3.94:1 on cream, below the
+4.5:1 WCAG AA needs for normal text. Secondary text is slightly darker now; the app should still read as
+warm rather than stark.
 
 ## Colour reasoning
 

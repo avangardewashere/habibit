@@ -1,37 +1,138 @@
 @import "tailwindcss";
 
 /*
- * Brand tokens. Tailwind v4 is CSS-first: these generate the utilities
- * (bg-cream, text-ink-soft, rounded-card, ...) with no tailwind.config.js.
+ * Dark mode is driven by a data attribute rather than a class, so the inline
+ * script in the layout can set it before the first paint.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Two kinds of colour live here, and keeping them apart is what makes dark mode
+ * a variable swap instead of a component rewrite.
  *
- * Coral over red, because red reads as *error* and coral reads as *warmth*.
- * Cream over white and warm-black over #000, because pure values are what make
- * an interface feel cold.
+ *   BRAND SCALE   fixed identity. Identical in both themes, matching the icon.
+ *   SEMANTIC      roles the UI actually references. These flip.
+ *
+ * Every pair below is checked against WCAG AA by lib/contrast.test.ts, in both
+ * themes. Change a value there and the suite tells you if it stopped passing.
  */
 @theme {
-  --color-habibit-50: #FFF1F0;
-  --color-habibit-100: #FFE1DF;
+  /* --- Brand scale: never changes, matches assets/habibit Icon.svg --- */
   --color-habibit-400: #FF8189;
   --color-habibit-500: #F2545B;
   --color-habibit-600: #D93B4E;
 
-  --color-cream: #FFFBF7;
+  /*
+   * Danger is the same in both themes on purpose: a filled pill carries its own
+   * contrast against its own label, so it does not depend on the page beneath.
+   */
+  --color-danger: #C93247;
+  --color-on-danger: #FFFFFF;
+
+  /* --- Semantic roles: light values --- */
+  --color-surface: #FFFBF7;
+  --color-card: #FFFFFF;
   --color-ink: #2B2024;
-  --color-ink-soft: #8A7A80;
+  --color-ink-soft: #7A6A72;
   --color-line: #F3E7E4;
+  --color-accent: #F2545B;
+  --color-on-accent: #FFFFFF;
+  --color-badge-bg: #FFF1F0;
+  --color-badge-fg: #AD2E3E;
+  --color-badge-done-bg: #C93247;
+  --color-badge-done-fg: #FFFFFF;
 
   --font-display: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
 
   --radius-card: 1rem;
 }
 
+/*
+ * The dark palette's literal values, defined once. The two rules below only
+ * reference these, so the numbers can never drift apart between them.
+ *
+ * The ground is #241726 — the plum the app icon's plate used to be, before it
+ * went cream. Nothing about the original design went to waste.
+ */
+:root {
+  --dark-surface: #241726;
+  --dark-card: #2E1F2A;
+  --dark-ink: #F5EDEA;
+  --dark-ink-soft: #A2909A;
+  --dark-line: #3A2A33;
+  --dark-accent: #FF8189;
+  --dark-on-accent: #241726;
+  --dark-badge-bg: #3A2430;
+  --dark-badge-fg: #FF8189;
+  --dark-badge-done-bg: #FF8189;
+  --dark-badge-done-fg: #241726;
+}
+
+/*
+ * Dark, because the system asks for it and the user has not forced light.
+ *
+ * `html[...]` rather than a bare attribute selector, so these outrank the
+ * `:root` block Tailwind emits regardless of source order.
+ *
+ * NOTE: the assignment list below is duplicated in the next rule. That is not an
+ * oversight — one is media-gated and the other is not, so they cannot be merged
+ * into a single selector. lib/contrast.test.ts asserts the two lists stay
+ * identical.
+ */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --color-surface: var(--dark-surface);
+    --color-card: var(--dark-card);
+    --color-ink: var(--dark-ink);
+    --color-ink-soft: var(--dark-ink-soft);
+    --color-line: var(--dark-line);
+    --color-accent: var(--dark-accent);
+    --color-on-accent: var(--dark-on-accent);
+    --color-badge-bg: var(--dark-badge-bg);
+    --color-badge-fg: var(--dark-badge-fg);
+    --color-badge-done-bg: var(--dark-badge-done-bg);
+    --color-badge-done-fg: var(--dark-badge-done-fg);
+  }
+}
+
+/* Dark, because the user explicitly chose it. */
+html[data-theme="dark"] {
+  --color-surface: var(--dark-surface);
+  --color-card: var(--dark-card);
+  --color-ink: var(--dark-ink);
+  --color-ink-soft: var(--dark-ink-soft);
+  --color-line: var(--dark-line);
+  --color-accent: var(--dark-accent);
+  --color-on-accent: var(--dark-on-accent);
+  --color-badge-bg: var(--dark-badge-bg);
+  --color-badge-fg: var(--dark-badge-fg);
+  --color-badge-done-bg: var(--dark-badge-done-bg);
+  --color-badge-done-fg: var(--dark-badge-done-fg);
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* Tells the browser to render its own UI (scrollbars, form controls) to match. */
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html:not([data-theme="light"]) {
+      color-scheme: dark;
+    }
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  html[data-theme="light"] {
+    color-scheme: light;
   }
 
   body {
-    background-color: var(--color-cream);
+    background-color: var(--color-surface);
     color: var(--color-ink);
     font-family: var(--font-display);
     -webkit-font-smoothing: antialiased;

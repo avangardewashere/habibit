@@ -59,13 +59,13 @@ export function Composer({
         autoComplete="off"
         enterKeyHint="done"
         /* text-base is 16px: below that, iOS Safari zooms on focus and never zooms back. */
-        className="min-h-14 flex-1 bg-transparent px-4 text-base text-ink outline-none placeholder:text-ink-soft/70"
+        className="min-h-14 flex-1 bg-transparent px-4 text-base text-ink outline-none placeholder:text-ink-soft"
       />
       <button
         type="submit"
         disabled={!canSubmit}
         aria-label={addLabel}
-        className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full bg-habibit-500 text-white transition active:scale-90 disabled:bg-line disabled:text-ink-soft/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-habibit-500"
+        className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full bg-accent text-on-accent transition active:scale-90 disabled:bg-line disabled:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <Plus className="h-5 w-5" strokeWidth={3} />
       </button>

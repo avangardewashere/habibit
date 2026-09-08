@@ -56,7 +56,7 @@ export function ItemRow({
           }
           onToggle();
         }}
-        className="flex min-h-14 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-habibit-500"
+        className="flex min-h-14 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
       >
         <CheckCircle checked={checked} />
         <span
@@ -81,7 +81,7 @@ export function ItemRow({
            * through to the toggle — tapping "somewhere else to cancel" would
            * tick the habit off instead. The timeout is the safety net.
            */
-          className="min-h-11 shrink-0 touch-manipulation rounded-full bg-habibit-600 px-3 text-xs font-extrabold text-white transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-habibit-500"
+          className="min-h-11 shrink-0 touch-manipulation rounded-full bg-danger px-3 text-xs font-extrabold text-on-danger transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Delete?
         </button>
@@ -90,7 +90,7 @@ export function ItemRow({
           type="button"
           onClick={() => setConfirming(true)}
           aria-label={removeLabel}
-          className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full text-ink-soft/50 transition hover:bg-habibit-50 hover:text-habibit-600 active:scale-90 focus-visible:outline-2 focus-visible:outline-habibit-500"
+          className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full text-ink-soft transition hover:bg-badge-bg hover:text-danger active:scale-90 focus-visible:outline-2 focus-visible:outline-accent"
         >
           <X className="h-4 w-4" strokeWidth={2.5} />
         </button>
