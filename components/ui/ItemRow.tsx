@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { CheckCircle } from './CheckCircle';
 
 /** How long the confirm stays armed before quietly giving up. */
@@ -26,6 +27,8 @@ export function ItemRow({
   onRemove,
   removeLabel,
   confirmLabel,
+  trailing,
+  below,
 }: {
   title: string;
   checked: boolean;
@@ -33,6 +36,10 @@ export function ItemRow({
   onRemove: () => void;
   removeLabel: string;
   confirmLabel: string;
+  /** Sits between the title and the delete control. Habits put their streak here. */
+  trailing?: ReactNode;
+  /** Full-width, under the title. Habits put their 7-day strip here. */
+  below?: ReactNode;
 }) {
   const [confirming, setConfirming] = useState(false);
 
@@ -43,58 +50,64 @@ export function ItemRow({
   }, [confirming]);
 
   return (
-    <li className="flex items-center gap-1 pr-2">
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={checked}
-        onClick={() => {
-          // Touching the row is also how you back out of a delete.
-          if (confirming) {
-            setConfirming(false);
-            return;
-          }
-          onToggle();
-        }}
-        className="flex min-h-14 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
-      >
-        <CheckCircle checked={checked} />
-        <span
-          className={[
-            'min-w-0 break-words text-[15px] leading-snug transition-colors',
-            checked ? 'text-ink-soft line-through' : 'text-ink',
-          ].join(' ')}
+    <li>
+      <div className="flex items-center gap-1 pr-2">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={checked}
+          onClick={() => {
+            // Touching the row is also how you back out of a delete.
+            if (confirming) {
+              setConfirming(false);
+              return;
+            }
+            onToggle();
+          }}
+          className="flex min-h-14 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
         >
-          {title}
-        </span>
-      </button>
+          <CheckCircle checked={checked} />
+          <span
+            className={[
+              'min-w-0 break-words text-[15px] leading-snug transition-colors',
+              checked ? 'text-ink-soft line-through' : 'text-ink',
+            ].join(' ')}
+          >
+            {title}
+          </span>
+        </button>
 
-      {confirming ? (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={confirmLabel}
-          autoFocus
-          /*
-           * Deliberately no onBlur cancel. Blur fires before the row's click,
-           * so cancelling there would disarm first and let the click fall
-           * through to the toggle — tapping "somewhere else to cancel" would
-           * tick the habit off instead. The timeout is the safety net.
-           */
-          className="min-h-11 shrink-0 touch-manipulation rounded-full bg-danger px-3 text-xs font-extrabold text-on-danger transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          Delete?
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          aria-label={removeLabel}
-          className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full text-ink-soft transition hover:bg-badge-bg hover:text-danger active:scale-90 focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          <X className="h-4 w-4" strokeWidth={2.5} />
-        </button>
-      )}
+        {trailing}
+
+        {confirming ? (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={confirmLabel}
+            autoFocus
+            /*
+             * Deliberately no onBlur cancel. Blur fires before the row's click,
+             * so cancelling there would disarm first and let the click fall
+             * through to the toggle — tapping "somewhere else to cancel" would
+             * tick the habit off instead. The timeout is the safety net.
+             */
+            className="min-h-11 shrink-0 touch-manipulation rounded-full bg-danger px-3 text-xs font-extrabold text-on-danger transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Delete?
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            aria-label={removeLabel}
+            className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full text-ink-soft transition hover:bg-badge-bg hover:text-danger active:scale-90 focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <X className="h-4 w-4" strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
+
+      {below}
     </li>
   );
 }

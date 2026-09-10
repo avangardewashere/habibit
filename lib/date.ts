@@ -40,3 +40,30 @@ export function parseDateKey(key: DateKey): Date {
   const [year, month, day] = key.split('-').map(Number);
   return new Date(year, month - 1, day);
 }
+
+/**
+ * Steps a day key forward or backward.
+ *
+ * NEVER step days with `time +/- 86_400_000`. On a daylight-saving boundary that
+ * lands 23 or 25 hours away and silently returns the wrong day, so a streak
+ * would break once a year for anyone who observes DST.
+ *
+ * The noon anchor matters too: in zones that have skipped midnight when the
+ * clocks jump (Brazil has done this), local midnight does not exist on that
+ * date. Noon is never ambiguous. The Date constructor handles the month, year
+ * and leap-day rollover.
+ */
+export function addDaysToKey(key: DateKey, delta: number): DateKey {
+  const [year, month, day] = key.split('-').map(Number);
+  return dateKey(new Date(year, month - 1, day + delta, 12));
+}
+
+/** A single letter for the weekday column headers: S M T W T F S. */
+export function weekdayInitial(key: DateKey): string {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'narrow' }).format(parseDateKey(key));
+}
+
+/** e.g. "Tuesday, September 8" — the accessible name for a day in the strip. */
+export function formatDateKeyLong(key: DateKey): string {
+  return formatDayLabel(parseDateKey(key));
+}

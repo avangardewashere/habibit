@@ -6,7 +6,10 @@ import { ItemRow } from '@/components/ui/ItemRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useToday } from '@/lib/useToday';
 import { useHabibit } from '@/store/HabibitProvider';
-import { activeHabits, completedCount, isCompleted } from '@/store/selectors';
+import { activeHabits, completedCount, currentStreak, isCompleted, recentDays } from '@/store/selectors';
+import { DayStrip } from './DayStrip';
+import { StreakBadge } from './StreakBadge';
+import { WeekdayHeader } from './WeekdayHeader';
 
 /**
  * Habits recur. Checking one writes a completion for *today's* key, so the same
@@ -19,6 +22,8 @@ export function HabitSection() {
 
   const habits = activeHabits(state);
   const done = today ? completedCount(state, today) : 0;
+  // Empty until the client knows the date, which keeps the server render honest.
+  const days = today ? recentDays(today) : [];
 
   return (
     <section className="mb-7">
@@ -47,21 +52,39 @@ export function HabitSection() {
             hint="Start with one small thing. It resets every morning."
           />
         ) : (
-          <ul className="divide-y divide-line">
-            {habits.map((habit) => (
-              <ItemRow
-                key={habit.id}
-                title={habit.title}
-                checked={today ? isCompleted(state, habit.id, today) : false}
-                onToggle={() =>
-                  today && dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: today })
-                }
-                onRemove={() => dispatch({ type: 'REMOVE_HABIT', id: habit.id })}
-                removeLabel={`Delete habit: ${habit.title}`}
-                confirmLabel={`Confirm deleting ${habit.title} and its whole completion history`}
-              />
-            ))}
-          </ul>
+          <>
+            {today && <WeekdayHeader days={days} today={today} />}
+
+            <ul className="divide-y divide-line">
+              {habits.map((habit) => (
+                <ItemRow
+                  key={habit.id}
+                  title={habit.title}
+                  checked={today ? isCompleted(state, habit.id, today) : false}
+                  onToggle={() =>
+                    today && dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: today })
+                  }
+                  onRemove={() => dispatch({ type: 'REMOVE_HABIT', id: habit.id })}
+                  removeLabel={`Delete habit: ${habit.title}`}
+                  confirmLabel={`Confirm deleting ${habit.title} and its whole completion history`}
+                  trailing={today ? <StreakBadge streak={currentStreak(state, habit.id, today)} /> : null}
+                  below={
+                    today ? (
+                      <DayStrip
+                        habitTitle={habit.title}
+                        days={days}
+                        today={today}
+                        isDone={(day) => isCompleted(state, habit.id, day)}
+                        onToggle={(day) =>
+                          dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: day })
+                        }
+                      />
+                    ) : null
+                  }
+                />
+              ))}
+            </ul>
+          </>
         )}
 
         <Composer
