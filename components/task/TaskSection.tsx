@@ -45,8 +45,10 @@ export function TaskSection() {
                 checked={task.completedAt !== null}
                 onToggle={() => dispatch({ type: 'TOGGLE_TASK', id: task.id })}
                 onRemove={() => dispatch({ type: 'REMOVE_TASK', id: task.id })}
-                removeLabel={`Delete task: ${task.title}`}
-                confirmLabel={`Confirm deleting ${task.title}`}
+                onRename={(title) => dispatch({ type: 'RENAME_TASK', id: task.id, title })}
+                actionsLabel={`More actions for ${task.title}`}
+                renameLabel={`Rename task: ${task.title}`}
+                deleteLabel={`Delete task: ${task.title}`}
               />
             ))}
           </ul>

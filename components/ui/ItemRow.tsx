@@ -1,32 +1,35 @@
 'use client';
 
-import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import { Check, MoreHorizontal } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { CheckCircle } from './CheckCircle';
 
-/** How long the confirm stays armed before quietly giving up. */
-const CONFIRM_TIMEOUT_MS = 4000;
+/** How long the Rename / Delete menu stays open before quietly closing. */
+const MENU_TIMEOUT_MS = 4000;
+
+type Mode = 'idle' | 'menu' | 'editing';
 
 /**
  * One checkable line, shared by habits and tasks.
  *
- * The whole title area is the toggle so it is comfortable to hit with a thumb,
- * with delete as a separate 44px control beside it. Delete is always visible:
- * a hover-reveal would be unreachable on the phone this app is built for.
+ * The whole title area is the toggle so it is comfortable to hit with a thumb.
+ * Everything else a row can do lives behind a single `⋯` control, which opens
+ * Rename and Delete in place. One button instead of a pencil *and* an `×` keeps
+ * about 48px more room for the title on a phone (measured: 178px vs 130px).
  *
- * Deleting takes two taps. Now that state persists, a stray tap destroys real
- * history, and there is no undo. A native `confirm()` would do the job but is
- * jarring on mobile and cannot be styled, so the row arms itself instead and
- * disarms on a timeout or when you touch anything else in the row.
+ * Deleting is still two taps — `⋯` then Delete — because a stray tap would
+ * destroy real history and there is no undo.
  */
 export function ItemRow({
   title,
   checked,
   onToggle,
   onRemove,
-  removeLabel,
-  confirmLabel,
+  onRename,
+  actionsLabel,
+  renameLabel,
+  deleteLabel,
   trailing,
   below,
 }: {
@@ -34,20 +37,125 @@ export function ItemRow({
   checked: boolean;
   onToggle: () => void;
   onRemove: () => void;
-  removeLabel: string;
-  confirmLabel: string;
-  /** Sits between the title and the delete control. Habits put their streak here. */
+  /** Receives the raw input; the reducer trims it and rejects an empty title. */
+  onRename: (title: string) => void;
+  /** Accessible name for the `⋯` button, e.g. "More actions for Drink water". */
+  actionsLabel: string;
+  renameLabel: string;
+  /** Should say what deleting costs, e.g. "…and its whole completion history". */
+  deleteLabel: string;
+  /** Sits between the title and the actions. Habits put their streak here. */
   trailing?: ReactNode;
   /** Full-width, under the title. Habits put their 7-day strip here. */
   below?: ReactNode;
 }) {
-  const [confirming, setConfirming] = useState(false);
+  const [mode, setMode] = useState<Mode>('idle');
+  const [draft, setDraft] = useState(title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  /*
+   * Escape unmounts the input, and a focused element being removed can still
+   * fire blur on the way out — which would commit the very edit being
+   * cancelled. This marks that one blur to be ignored.
+   */
+  const skipNextBlur = useRef(false);
 
   useEffect(() => {
-    if (!confirming) return;
-    const timer = setTimeout(() => setConfirming(false), CONFIRM_TIMEOUT_MS);
+    if (mode !== 'menu') return;
+    const timer = setTimeout(() => setMode('idle'), MENU_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [confirming]);
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === 'editing') inputRef.current?.select();
+  }, [mode]);
+
+  function startEditing() {
+    // Whether or not the last session's unmount fired a blur, a new session
+    // starts clean — otherwise a leftover flag would silently swallow this
+    // session's blur-to-save.
+    skipNextBlur.current = false;
+    setDraft(title);
+    setMode('editing');
+  }
+
+  function commit() {
+    // Unchanged or blank: just close. The reducer would reject a blank title
+    // anyway, but not dispatching keeps a no-op edit truly a no-op.
+    if (draft.trim() && draft.trim() !== title) onRename(draft);
+    setMode('idle');
+  }
+
+  function cancel() {
+    skipNextBlur.current = true;
+    setDraft(title);
+    setMode('idle');
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    // Mid-composition (predictive text, CJK input), Enter confirms the word
+    // being composed rather than the field. Saving there would store a
+    // half-typed name.
+    if (event.nativeEvent.isComposing) return;
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      skipNextBlur.current = true;
+      commit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancel();
+    }
+  }
+
+  if (mode === 'editing') {
+    return (
+      <li>
+        <div className="flex min-h-14 items-center gap-1 pr-2">
+          <div className="flex flex-1 items-center gap-3 pl-4">
+            <CheckCircle checked={checked} />
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={onKeyDown}
+              onBlur={() => {
+                if (skipNextBlur.current) {
+                  skipNextBlur.current = false;
+                  return;
+                }
+                commit();
+              }}
+              aria-label={renameLabel}
+              enterKeyHint="done"
+              autoComplete="off"
+              autoFocus
+              /* text-base is 16px: below that, iOS Safari zooms on focus. */
+              className="min-w-0 flex-1 rounded-lg border border-accent bg-surface px-2 py-1.5 text-base text-ink outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Save name"
+            /*
+             * Keep focus in the input while pressing. Otherwise the input blurs
+             * first (committing), unmounts, and this click lands on nothing —
+             * the same blur-before-click race that broke cancel-delete in v0.5.
+             */
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={() => {
+              skipNextBlur.current = true;
+              commit();
+            }}
+            className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full bg-accent text-on-accent transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Check className="h-4 w-4" strokeWidth={3} />
+          </button>
+        </div>
+        {below}
+      </li>
+    );
+  }
 
   return (
     <li>
@@ -57,9 +165,10 @@ export function ItemRow({
           role="checkbox"
           aria-checked={checked}
           onClick={() => {
-            // Touching the row is also how you back out of a delete.
-            if (confirming) {
-              setConfirming(false);
+            // Touching the row is also how you close the menu. The tap is
+            // swallowed so closing it never ticks the item by accident.
+            if (mode === 'menu') {
+              setMode('idle');
               return;
             }
             onToggle();
@@ -77,33 +186,44 @@ export function ItemRow({
           </span>
         </button>
 
-        {trailing}
-
-        {confirming ? (
-          <button
-            type="button"
-            onClick={onRemove}
-            aria-label={confirmLabel}
-            autoFocus
-            /*
-             * Deliberately no onBlur cancel. Blur fires before the row's click,
-             * so cancelling there would disarm first and let the click fall
-             * through to the toggle — tapping "somewhere else to cancel" would
-             * tick the habit off instead. The timeout is the safety net.
-             */
-            className="min-h-11 shrink-0 touch-manipulation rounded-full bg-danger px-3 text-xs font-extrabold text-on-danger transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            Delete?
-          </button>
+        {mode === 'menu' ? (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={startEditing}
+              aria-label={renameLabel}
+              /*
+               * border-ink-soft, not border-line: `line` is only 1.16:1 against
+               * the card in dark mode, so the pill read as loose text rather
+               * than a button. ink-soft is 5.08 light / 5.20 dark.
+               */
+              className="min-h-11 touch-manipulation rounded-full border border-ink-soft bg-card px-3 text-xs font-extrabold text-ink transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Rename
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={deleteLabel}
+              className="min-h-11 touch-manipulation rounded-full bg-danger px-3 text-xs font-extrabold text-on-danger transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Delete
+            </button>
+          </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            aria-label={removeLabel}
-            className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full text-ink-soft transition hover:bg-badge-bg hover:text-danger active:scale-90 focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            <X className="h-4 w-4" strokeWidth={2.5} />
-          </button>
+          <>
+            {trailing}
+            <button
+              type="button"
+              onClick={() => setMode('menu')}
+              aria-label={actionsLabel}
+              aria-haspopup="true"
+              aria-expanded={false}
+              className="grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full text-ink-soft transition hover:bg-badge-bg hover:text-ink active:scale-90 focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <MoreHorizontal className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+          </>
         )}
       </div>
 

@@ -65,8 +65,10 @@ export function HabitSection() {
                     today && dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: today })
                   }
                   onRemove={() => dispatch({ type: 'REMOVE_HABIT', id: habit.id })}
-                  removeLabel={`Delete habit: ${habit.title}`}
-                  confirmLabel={`Confirm deleting ${habit.title} and its whole completion history`}
+                  onRename={(title) => dispatch({ type: 'RENAME_HABIT', id: habit.id, title })}
+                  actionsLabel={`More actions for ${habit.title}`}
+                  renameLabel={`Rename habit: ${habit.title}`}
+                  deleteLabel={`Delete ${habit.title} and its whole completion history`}
                   trailing={today ? <StreakBadge streak={currentStreak(state, habit.id, today)} /> : null}
                   below={
                     today ? (

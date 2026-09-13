@@ -24,10 +24,17 @@ export type HabibitAction =
   | { type: 'HYDRATE'; state: HabibitState }
   | { type: 'ADD_HABIT'; title: string; emoji?: string | null }
   | { type: 'REMOVE_HABIT'; id: string }
+  /**
+   * Changes only the title. Completions are keyed by the habit's id, never its
+   * title, so the whole history follows a rename for free — which is the
+   * reason ids exist at all.
+   */
+  | { type: 'RENAME_HABIT'; id: string; title: string }
   | { type: 'TOGGLE_COMPLETION'; habitId: string; dateKey: DateKey }
   | { type: 'ADD_TASK'; title: string }
   | { type: 'TOGGLE_TASK'; id: string }
-  | { type: 'REMOVE_TASK'; id: string };
+  | { type: 'REMOVE_TASK'; id: string }
+  | { type: 'RENAME_TASK'; id: string; title: string };
 
 /** Pure. Never mutates `state`. Testable with no React and no DOM. */
 export function habibitReducer(state: HabibitState, action: HabibitAction): HabibitState {
@@ -68,6 +75,18 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
       };
     }
 
+    case 'RENAME_HABIT': {
+      const title = action.title.trim();
+      // An empty rename is rejected rather than treated as a delete.
+      if (!title) return state;
+      const habit = state.habits.find((h) => h.id === action.id);
+      if (!habit || habit.title === title) return state;
+      return {
+        ...state,
+        habits: state.habits.map((h) => (h.id === action.id ? { ...h, title } : h)),
+      };
+    }
+
     case 'TOGGLE_COMPLETION': {
       if (!state.habits.some((h) => h.id === action.habitId)) return state;
       const key = completionKey(action.habitId, action.dateKey);
@@ -103,6 +122,17 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
             ? { ...t, completedAt: t.completedAt ? null : new Date().toISOString() }
             : t,
         ),
+      };
+    }
+
+    case 'RENAME_TASK': {
+      const title = action.title.trim();
+      if (!title) return state;
+      const task = state.tasks.find((t) => t.id === action.id);
+      if (!task || task.title === title) return state;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) => (t.id === action.id ? { ...t, title } : t)),
       };
     }
 

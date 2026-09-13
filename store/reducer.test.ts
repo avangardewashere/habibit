@@ -252,3 +252,98 @@ describe('HYDRATE', () => {
     expect(isCompleted(toggled, id, DAY_A)).toBe(true);
   });
 });
+
+describe('RENAME_HABIT', () => {
+  it('changes the title and trims it', () => {
+    let state = run([{ type: 'ADD_HABIT', title: 'Drink watr' }]);
+    const { id } = state.habits[0];
+
+    state = habibitReducer(state, { type: 'RENAME_HABIT', id, title: '  Drink water  ' });
+
+    expect(state.habits[0].title).toBe('Drink water');
+    expect(state.habits[0].id).toBe(id);
+  });
+
+  it('keeps the whole completion history — the reason ids exist', () => {
+    let state = run([{ type: 'ADD_HABIT', title: 'Drink watr' }]);
+    const { id } = state.habits[0];
+    state = run(
+      [
+        { type: 'TOGGLE_COMPLETION', habitId: id, dateKey: DAY_A },
+        { type: 'TOGGLE_COMPLETION', habitId: id, dateKey: DAY_B },
+      ],
+      state,
+    );
+    const historyBefore = state.completions;
+
+    state = habibitReducer(state, { type: 'RENAME_HABIT', id, title: 'Drink water' });
+
+    expect(state.completions).toBe(historyBefore);
+    expect(isCompleted(state, id, DAY_A)).toBe(true);
+    expect(isCompleted(state, id, DAY_B)).toBe(true);
+  });
+
+  it('rejects an empty or whitespace-only title instead of deleting', () => {
+    const state = run([{ type: 'ADD_HABIT', title: 'Stretch' }]);
+    const { id } = state.habits[0];
+
+    expect(habibitReducer(state, { type: 'RENAME_HABIT', id, title: '' })).toBe(state);
+    expect(habibitReducer(state, { type: 'RENAME_HABIT', id, title: '   ' })).toBe(state);
+  });
+
+  it('returns the same state when the title does not actually change', () => {
+    const state = run([{ type: 'ADD_HABIT', title: 'Stretch' }]);
+    const { id } = state.habits[0];
+    expect(habibitReducer(state, { type: 'RENAME_HABIT', id, title: ' Stretch ' })).toBe(state);
+  });
+
+  it('ignores an unknown id', () => {
+    const state = run([{ type: 'ADD_HABIT', title: 'Stretch' }]);
+    expect(habibitReducer(state, { type: 'RENAME_HABIT', id: 'nope', title: 'X' })).toBe(state);
+  });
+
+  it('renames only the named habit, even when titles collide', () => {
+    let state = run([
+      { type: 'ADD_HABIT', title: 'Stretch' },
+      { type: 'ADD_HABIT', title: 'Stretch' },
+    ]);
+    const [first, second] = state.habits;
+
+    state = habibitReducer(state, { type: 'RENAME_HABIT', id: second.id, title: 'Yoga' });
+
+    expect(state.habits.find((h) => h.id === first.id)?.title).toBe('Stretch');
+    expect(state.habits.find((h) => h.id === second.id)?.title).toBe('Yoga');
+  });
+});
+
+describe('RENAME_TASK', () => {
+  it('changes the title and keeps it done if it was done', () => {
+    let state = run([{ type: 'ADD_TASK', title: 'Book dentst' }]);
+    const { id } = state.tasks[0];
+    state = habibitReducer(state, { type: 'TOGGLE_TASK', id });
+    const completedAt = state.tasks[0].completedAt;
+
+    state = habibitReducer(state, { type: 'RENAME_TASK', id, title: 'Book dentist' });
+
+    expect(state.tasks[0].title).toBe('Book dentist');
+    expect(state.tasks[0].completedAt).toBe(completedAt);
+  });
+
+  it('rejects an empty title', () => {
+    const state = run([{ type: 'ADD_TASK', title: 'Pay rent' }]);
+    const { id } = state.tasks[0];
+    expect(habibitReducer(state, { type: 'RENAME_TASK', id, title: '  ' })).toBe(state);
+  });
+
+  it('does not touch habits', () => {
+    let state = run([
+      { type: 'ADD_HABIT', title: 'Water' },
+      { type: 'ADD_TASK', title: 'Pay rent' },
+    ]);
+    const habitsBefore = state.habits;
+
+    state = habibitReducer(state, { type: 'RENAME_TASK', id: state.tasks[0].id, title: 'Pay rent!' });
+
+    expect(state.habits).toBe(habitsBefore);
+  });
+});
