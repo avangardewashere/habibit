@@ -40,8 +40,8 @@ Then open http://localhost:3000.
 | `npm run dev` | Development server |
 | `npm run build` then `npm start` | Production build, and serve it |
 | `npm run check` | Everything: typecheck, lint, unit tests, then browser tests. Run this before pushing |
-| `npm test` | Unit tests (145) |
-| `npm run e2e` | Browser tests (37 tests, as an Android phone and as desktop Chrome) against a production build |
+| `npm test` | Unit tests (180) |
+| `npm run e2e` | Browser tests (44 tests, as an Android phone and as desktop Chrome) against a production build |
 | `npm run e2e:report` | Open the last browser-test report, with a step-by-step trace of any failure |
 | `npm run typecheck` | Generate Next route types, then TypeScript with no emit |
 | `npm run lint` | ESLint |

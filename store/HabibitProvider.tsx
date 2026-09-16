@@ -1,15 +1,16 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import type { Dispatch, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useIsomorphicLayoutEffect } from '@/lib/useIsomorphicLayoutEffect';
 import { loadState, saveState, STORAGE_KEY } from '@/lib/storage';
 import type { HabibitState } from '@/lib/types';
-import { habibitReducer, initialState, type HabibitAction } from './reducer';
+import { habibitReducer, initialState, stamp, type HabibitIntent } from './reducer';
 
 type HabibitContextValue = {
   state: HabibitState;
-  dispatch: Dispatch<HabibitAction>;
+  /** Stamps the intent with the time (and an id, for adds), then applies it. */
+  dispatch: (intent: HabibitIntent) => void;
   /** True once a write to storage has failed, so the UI can stop pretending. */
   saveFailed: boolean;
 };
@@ -17,7 +18,14 @@ type HabibitContextValue = {
 const HabibitContext = createContext<HabibitContextValue | null>(null);
 
 export function HabibitProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(habibitReducer, initialState);
+  const [state, rawDispatch] = useReducer(habibitReducer, initialState);
+
+  /*
+   * The clock and id generator are read here, once, outside the reducer. That
+   * keeps the reducer pure: React may call it twice (StrictMode does), and both
+   * calls must agree — including on a brand-new habit's id.
+   */
+  const dispatch = useCallback((intent: HabibitIntent) => rawDispatch(stamp(intent)), []);
   const [saveFailed, setSaveFailed] = useState(false);
 
   /**
@@ -32,7 +40,7 @@ export function HabibitProvider({ children }: { children: ReactNode }) {
     // Recorded *before* dispatching, so the save effect below can tell that this
     // state came out of storage and does not need writing back.
     persisted.current = stored;
-    dispatch({ type: 'HYDRATE', state: stored });
+    rawDispatch({ type: 'HYDRATE', state: stored });
   }, []);
 
   // Before paint, so a returning user never sees a flash of the empty state.
@@ -75,7 +83,7 @@ export function HabibitProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', onStorage);
   }, [hydrate]);
 
-  const value = useMemo(() => ({ state, dispatch, saveFailed }), [state, saveFailed]);
+  const value = useMemo(() => ({ state, dispatch, saveFailed }), [state, dispatch, saveFailed]);
 
   return <HabibitContext.Provider value={value}>{children}</HabibitContext.Provider>;
 }

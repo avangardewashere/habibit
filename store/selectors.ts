@@ -2,13 +2,24 @@ import { addDaysToKey } from '@/lib/date';
 import { completionKey } from '@/lib/keys';
 import type { DateKey, Habit, HabibitState, Task } from '@/lib/types';
 
-/** Habits that are not archived, oldest first. */
+/*
+ * Every selector that lists records hides tombstones. The reducer keeps deleted
+ * rows only so the delete can sync; to the UI they do not exist.
+ */
+
+/** Habits that are neither deleted nor archived, oldest first. */
 export function activeHabits(state: HabibitState): Habit[] {
-  return state.habits.filter((h) => h.archivedAt === null);
+  return state.habits.filter((h) => h.deletedAt === null && h.archivedAt === null);
 }
 
+/** Tasks that have not been deleted, in the order they were added. */
+export function liveTasks(state: HabibitState): Task[] {
+  return state.tasks.filter((t) => t.deletedAt === null);
+}
+
+/** An untick is stored as `done: false`, so a record merely existing is not enough. */
 export function isCompleted(state: HabibitState, habitId: string, date: DateKey): boolean {
-  return Boolean(state.completions[completionKey(habitId, date)]);
+  return state.completions[completionKey(habitId, date)]?.done === true;
 }
 
 /** How many active habits are checked on `date` — the "2/3" in the section header. */
@@ -17,11 +28,11 @@ export function completedCount(state: HabibitState, date: DateKey): number {
 }
 
 export function openTasks(state: HabibitState): Task[] {
-  return state.tasks.filter((t) => t.completedAt === null);
+  return liveTasks(state).filter((t) => t.completedAt === null);
 }
 
 export function doneTasks(state: HabibitState): Task[] {
-  return state.tasks.filter((t) => t.completedAt !== null);
+  return liveTasks(state).filter((t) => t.completedAt !== null);
 }
 
 /** Open tasks first, completed ones sunk to the bottom. */

@@ -1,4 +1,4 @@
-import type { Habit, HabibitState, Task } from './types';
+import type { Completion, CompletionKey, Habit, HabibitState, Task } from './types';
 
 /**
  * The storage boundary.
@@ -22,7 +22,7 @@ export const CORRUPT_KEY = 'habibit:state:corrupt';
  * old shape forward. The version lives in the envelope rather than the state so
  * that reading it never depends on the state being valid.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 type Envelope = { version: number; state: HabibitState };
 
@@ -51,14 +51,21 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === 'string';
 }
 
+/*
+ * Validators are strict about the fields we rely on and deliberately lenient
+ * about extra ones: a newer build that adds a field should still be readable by
+ * an older one. That is also why a leftover v1 `emoji` field is harmless.
+ */
+
 function isHabit(value: unknown): value is Habit {
   return (
     isRecord(value) &&
     isNonEmptyString(value.id) &&
     typeof value.title === 'string' &&
-    isNullableString(value.emoji) &&
     isNonEmptyString(value.createdAt) &&
-    isNullableString(value.archivedAt)
+    isNonEmptyString(value.updatedAt) &&
+    isNullableString(value.archivedAt) &&
+    isNullableString(value.deletedAt)
   );
 }
 
@@ -68,14 +75,17 @@ function isTask(value: unknown): value is Task {
     isNonEmptyString(value.id) &&
     typeof value.title === 'string' &&
     isNonEmptyString(value.createdAt) &&
-    isNullableString(value.completedAt)
+    isNonEmptyString(value.updatedAt) &&
+    isNullableString(value.completedAt) &&
+    isNullableString(value.deletedAt)
   );
 }
 
-/**
- * Strict about the fields we rely on, deliberately lenient about extra ones:
- * a newer build that adds a field should still be readable by an older one.
- */
+function isCompletion(value: unknown): value is Completion {
+  return isRecord(value) && typeof value.done === 'boolean' && isNonEmptyString(value.updatedAt);
+}
+
+/** A valid state in the current (v2) shape. */
 export function isHabibitState(value: unknown): value is HabibitState {
   return (
     isRecord(value) &&
@@ -84,18 +94,91 @@ export function isHabibitState(value: unknown): value is HabibitState {
     Array.isArray(value.tasks) &&
     value.tasks.every(isTask) &&
     isRecord(value.completions) &&
+    Object.values(value.completions).every(isCompletion)
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Version 1: the shape shipped from v0.5 to v1.0.0. Frozen here, never edited,
+// because it describes data already sitting on people's phones.
+// ---------------------------------------------------------------------------
+
+type HabitV1 = { id: string; title: string; emoji: string | null; createdAt: string; archivedAt: string | null };
+type TaskV1 = { id: string; title: string; createdAt: string; completedAt: string | null };
+type StateV1 = { habits: HabitV1[]; tasks: TaskV1[]; completions: Record<CompletionKey, string> };
+
+function isStateV1(value: unknown): value is StateV1 {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.habits) &&
+    value.habits.every(
+      (h) =>
+        isRecord(h) &&
+        isNonEmptyString(h.id) &&
+        typeof h.title === 'string' &&
+        isNullableString(h.emoji) &&
+        isNonEmptyString(h.createdAt) &&
+        isNullableString(h.archivedAt),
+    ) &&
+    Array.isArray(value.tasks) &&
+    value.tasks.every(
+      (t) =>
+        isRecord(t) &&
+        isNonEmptyString(t.id) &&
+        typeof t.title === 'string' &&
+        isNonEmptyString(t.createdAt) &&
+        isNullableString(t.completedAt),
+    ) &&
+    isRecord(value.completions) &&
     Object.values(value.completions).every((at) => typeof at === 'string')
   );
 }
 
 /**
- * The seam for future schema changes. Today there is only one version, so
- * anything else is discarded — but when v2 arrives, older envelopes get
- * transformed here rather than thrown away.
+ * v1 → v2. Nothing a user can see is lost; only bookkeeping is added.
+ *
+ * - `updatedAt` is the latest instant v1 knew about for each row: when a task
+ *   was completed, otherwise when the row was created. v1 kept no edit times,
+ *   so a rename made before the upgrade dates from creation. The honest best.
+ * - Nothing in v1 is deleted: it purged deleted rows, so there are no
+ *   tombstones to recover and `deletedAt` starts null everywhere.
+ * - A v1 completion existed only while ticked, so each becomes `done: true`,
+ *   dated when it was ticked.
+ * - `emoji` is dropped. It was never settable from the UI, so it is always null.
+ */
+export function migrateV1(state: StateV1): HabibitState {
+  return {
+    habits: state.habits.map((h) => ({
+      id: h.id,
+      title: h.title,
+      createdAt: h.createdAt,
+      updatedAt: h.createdAt,
+      archivedAt: h.archivedAt,
+      deletedAt: null,
+    })),
+    tasks: state.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      createdAt: t.createdAt,
+      updatedAt: t.completedAt ?? t.createdAt,
+      completedAt: t.completedAt,
+      deletedAt: null,
+    })),
+    completions: Object.fromEntries(
+      Object.entries(state.completions).map(([key, at]) => [key, { done: true, updatedAt: at }]),
+    ) as HabibitState['completions'],
+  };
+}
+
+/**
+ * Brings any stored envelope up to the current shape, one version at a time.
+ * Unknown versions — including ones from a *newer* build — are refused rather
+ * than guessed at, and end up in quarantine.
  */
 function migrate(version: unknown, state: unknown): HabibitState | null {
-  if (version !== SCHEMA_VERSION) return null;
-  return isHabibitState(state) ? state : null;
+  if (version === SCHEMA_VERSION) return isHabibitState(state) ? state : null;
+  if (version === 1) return isStateV1(state) ? migrateV1(state) : null;
+  return null;
 }
 
 function quarantine(store: Storage, raw: string): void {

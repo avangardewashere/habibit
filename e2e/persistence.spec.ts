@@ -37,7 +37,7 @@ test('V2A-06 · ⭐ data survives six reloads in a row', async ({ page }) => {
   }
 
   const stored = await storedState(page);
-  expect(stored.version).toBe(1);
+  expect(stored.version).toBe(2);
   expect(stored.state.habits).toHaveLength(1);
 });
 
