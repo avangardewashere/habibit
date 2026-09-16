@@ -20,13 +20,13 @@ A gentle habit tracker for your phone. *Habibi* (love) + *habit* + *bit* (small)
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Vitest + Testing Library · Playwright · deployed on Vercel.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (optional accounts) · Vitest + Testing Library · Playwright · deployed on Vercel.
 
-No state library, UI kit, date library or backend. State is one pure reducer in React context.
+No state library, UI kit or date library. State is one pure reducer in React context. Accounts use Supabase straight from the browser, protected by Row Level Security; without Supabase settings the app runs exactly as before, with no account button.
 
 ## Run it locally
 
-Needs Node 20.9 or newer. Browser tests also need Chromium once: `npx playwright install chromium`.
+Needs Node 20.9 or newer. Browser tests also need Chromium once (`npx playwright install chromium`), and the database and browser tests need **Docker Desktop** running for a local Supabase.
 
 ```bash
 npm install
@@ -39,9 +39,11 @@ Then open http://localhost:3000.
 |---|---|
 | `npm run dev` | Development server |
 | `npm run build` then `npm start` | Production build, and serve it |
-| `npm run check` | Everything: typecheck, lint, unit tests, then browser tests. Run this before pushing |
-| `npm test` | Unit tests (180) |
-| `npm run e2e` | Browser tests (44 tests, as an Android phone and as desktop Chrome) against a production build |
+| `npm run check` | Everything: typecheck, lint, unit, database and browser tests. Run this before pushing |
+| `npm run db:start` / `db:stop` | Start or stop the local Supabase in Docker (needed by `test:db` and `e2e`) |
+| `npm run test:db` | Database security tests: can one user reach another's data? (19) |
+| `npm test` | Unit tests (183) |
+| `npm run e2e` | Browser tests (57 tests, as an Android phone and as desktop Chrome) against a production build |
 | `npm run e2e:report` | Open the last browser-test report, with a step-by-step trace of any failure |
 | `npm run typecheck` | Generate Next route types, then TypeScript with no emit |
 | `npm run lint` | ESLint |
@@ -54,6 +56,7 @@ app/          Page, layout, PWA manifest, global CSS and theme tokens
 components/   UI: habit/ and task/ sections, shared ui/ primitives
 lib/          Pure logic with no React: dates, storage, theme, titles
 store/        The reducer, selectors, and the provider that persists state
+supabase/     Database migrations, local config, sign-in email, security tests
 scripts/      Icon generation
 e2e/          Browser tests (Playwright)
 .github/      CI: every push runs the full check

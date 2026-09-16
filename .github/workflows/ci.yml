@@ -1,5 +1,5 @@
 # Every push and pull request runs the whole safety net: types, lint, unit tests,
-# then the browser tests against a production build. A red run on GitHub is
+# database security tests, then the browser tests against a production build. A red run on GitHub is
 # the v2 equivalent of a failed row on a manual QA checklist.
 name: CI
 
@@ -37,6 +37,14 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      # A private Supabase inside the CI machine's Docker, built from
+      # supabase/migrations. No test ever touches the real project.
+      - name: Start local Supabase
+        run: npm run db:start
+
+      - name: Database security tests
+        run: npm run test:db
 
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium

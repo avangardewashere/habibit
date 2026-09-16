@@ -1,0 +1,30 @@
+<!--
+  Habibit's sign-in email. Used for both new and returning users.
+
+  The link goes to the app's own /auth/confirm page with a one-time token_hash,
+  which works in any browser. The 6-digit code is for the installed Android app:
+  a link tapped in Gmail may open in Chrome rather than the app, so typing the
+  code is the way to sign the app itself in.
+
+  Keep this in sync with Authentication → Email Templates in the Supabase
+  dashboard: the hosted project does not read this file.
+-->
+<div style="font-family: Nunito, Arial, sans-serif; max-width: 420px; margin: 0 auto; padding: 24px; color: #2b1d2c; background: #fffbf7;">
+  <h1 style="font-size: 24px; margin: 0 0 4px;">Habi<span style="color: #e8604c;">bit</span></h1>
+  <p style="margin: 0 0 24px; color: #7a6a72;">Little habits. Lots of love.</p>
+
+  <p style="margin: 0 0 8px;">Your sign-in code:</p>
+  <p style="font-size: 32px; font-weight: 800; letter-spacing: 6px; margin: 0 0 24px;" data-testid="otp">{{ .Token }}</p>
+
+  <p style="margin: 0 0 16px;">Or tap to sign in on this device:</p>
+  <p style="margin: 0 0 24px;">
+    <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email"
+       style="display: inline-block; background: #e8604c; color: #ffffff; padding: 12px 20px; border-radius: 999px; text-decoration: none; font-weight: 800;">
+      Sign in to Habibit
+    </a>
+  </p>
+
+  <p style="font-size: 13px; color: #7a6a72; margin: 0;">
+    The code and link work once and expire in an hour. If you didn't ask for this, you can ignore it.
+  </p>
+</div>
