@@ -43,7 +43,7 @@ Then open http://localhost:3000.
 | `npm test` | Unit tests (145) |
 | `npm run e2e` | Browser tests (37 tests, as an Android phone and as desktop Chrome) against a production build |
 | `npm run e2e:report` | Open the last browser-test report, with a step-by-step trace of any failure |
-| `npm run typecheck` | TypeScript, no emit |
+| `npm run typecheck` | Generate Next route types, then TypeScript with no emit |
 | `npm run lint` | ESLint |
 | `npm run icons` | Regenerate every app icon from `assets/habibit Icon.svg` |
 

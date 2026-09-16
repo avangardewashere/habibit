@@ -31,7 +31,7 @@ The browser tests run twice: once as an **Android phone** (Pixel 7) and once as 
 | V2A-01 | Types, lint, unit tests still pass | `npm run check`: 145 unit tests | ✅ |
 | V2A-02 | Browser tests pass on a clean production build | 74 passed | ✅ |
 | V2A-03 | **They aren't flaky** | Whole suite 3× in a row: **222 / 222** passed | ✅ |
-| V2A-04 | GitHub runs everything on every push | `.github/workflows/ci.yml`; see the Actions tab | ✅ once the first run is green |
+| V2A-04 | GitHub runs everything on every push | `.github/workflows/ci.yml`. **Its first run failed for real**: see "Caught by CI" below | ✅ |
 
 ---
 
@@ -166,3 +166,17 @@ Nothing here is marked as passed. These are **optional** checks for when you wan
 | Port the "no flash of the empty state" row | Not ported | See section 4. The *dark-mode* flash (V2A-29) **was** automatable, because its cause is a DOM attribute |
 | Tests prove themselves | 9 of 10 through browser tests, 1 through a unit test | The reload-wipe bug needs StrictMode, which production doesn't have |
 | — | Added V2A-26 (slept through midnight) | It's the path phones actually take, and it had never been tested |
+
+---
+
+## Caught by CI on its first run
+
+The very first GitHub run failed at **Typecheck**: `Cannot find name 'LayoutProps'` in `app/layout.tsx`.
+
+`LayoutProps` is a type Next **generates** into `.next/` during `next dev` or `next build`. On your machine
+that folder has existed since v0, so `tsc` always found it. A fresh checkout has no `.next/`, so
+`npm run typecheck` had been broken on any new machine since the layout started using it. Nobody
+noticed because nobody had ever typechecked a clean clone. **That's exactly what CI does.**
+
+**Fix:** `typecheck` now runs `next typegen && tsc --noEmit`, which is what the bundled Next 16 docs
+recommend. Reproduced locally by deleting `.next/` (fails), then confirmed the fix (passes).
