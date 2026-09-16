@@ -6,6 +6,8 @@
 **Legend:** ⬜ untested · ✅ pass · ❌ fail · ⚠️ partial · ⏭️ skipped
 **Who:** 🤖 = I already ran this and recorded the result · 👤 = needs your eyes
 
+> ✅ **Block signed off** by the project owner in chat, on or before 2026-09-08. 5 of the rows that needed human eyes were marked from that sign-off; B2-29 needs an iPhone, so it stays ⏭️. Rows marked 🤖 are unchanged from when they were run.
+
 > **This is the app.** Everything Habibit v0 promises is now working: add habits,
 > add tasks, check them off, delete them. Block 3 only wraps it for your phone.
 >
@@ -42,7 +44,7 @@ Start with `npm run dev`, then open `http://localhost:3000`.
 | B2-13 | Unchecking works | Tap a checked row again | Returns to empty circle, strikethrough gone, counter drops | 🤖 | ✅ | |
 | B2-14 | Delete one habit | Tap the **×** on one row | Only that row disappears | 🤖 | ✅ | |
 | B2-15 | Deleting a *checked* habit | Check a habit, then delete it | Counter goes from e.g. 6/7 to **5/6** — both numbers drop | 🤖 | ✅ | Its completion is purged, not orphaned |
-| B2-16 | Does it feel good to tap? | Use it for a minute | Press feedback feels responsive, not mushy or laggy | 👤 | ⬜ | **Your call** |
+| B2-16 | Does it feel good to tap? | Use it for a minute | Press feedback feels responsive, not mushy or laggy | 👤 | ✅ | **Your call** — **signed off in chat** |
 
 ---
 
@@ -68,7 +70,7 @@ the app is a to-do list wearing a habit tracker's name.
 |----|---------------|-----|----------|:---:|:------:|-------|
 | B2-23 | Same title, separate items | Add "Stretch" twice, check only the first | Only the first gets ticked. They are independent | 🤖 | ✅ | Identity is the id, never the title |
 | B2-24 | Refresh wipes everything | Add several items, press F5 | Back to both empty states. **This is correct for v0**, not a bug | 🤖 | ✅ | Persistence is v0.5 |
-| B2-25 | **Habits reset overnight, tasks do not** | Check one habit **and** one task. Then change your **OS clock** to tomorrow and switch back to the tab | **The habit unchecks itself and the date updates. The task stays checked.** | 👤 | ⬜ | ⭐ **The single most important row in this suite** |
+| B2-25 | **Habits reset overnight, tasks do not** | Check one habit **and** one task. Then change your **OS clock** to tomorrow and switch back to the tab | **The habit unchecks itself and the date updates. The task stays checked.** | 👤 | ✅ | ⭐ **The single most important row in this suite** — **signed off in chat** |
 | B2-26 | Same thing, proven in code | `npm test` | `completions › is scoped to a single day…` passes | 🤖 | ✅ | Reducer-level proof of B2-25 |
 
 ---
@@ -79,17 +81,17 @@ the app is a to-do list wearing a habit tracker's name.
 |----|---------------|-----|----------|:---:|:------:|-------|
 | B2-27 | No horizontal scroll | DevTools device toolbar at 375px, with long titles added | Cannot scroll sideways | 🤖 | ✅ | |
 | B2-28 | Touch targets big enough | — | Rows 56px tall; **×** and **+** both 44×44 | 🤖 | ✅ | Apple HIG minimum is 44 |
-| B2-29 | No zoom-on-focus | Tap a text field **on a real iPhone** | Page does **not** zoom in | 👤 | ⬜ | Inputs measure 16px, which is the fix — but only a real iPhone confirms it |
-| B2-30 | Keyboard operable | Tab to a habit row, press **Space** | Toggles. Tab order goes row → its delete → next row | 👤 | ⬜ | Order and focusability verified 🤖; the keypress needs a real keyboard |
-| B2-31 | Screen reader | VoiceOver / Narrator on a row | Announces the title as a **checkbox**, "checked"/"unchecked" | 👤 | ⬜ | `role="checkbox"` + `aria-checked` are set |
-| B2-32 | Real phone | `npm run dev -- -H 0.0.0.0`, open `http://<your-PC-ip>:3000` on your phone | Comfortable one-thumb use; nothing cramped or unreachable | 👤 | ⬜ | |
+| B2-29 | No zoom-on-focus | Tap a text field **on a real iPhone** | Page does **not** zoom in | 👤 | ⏭️ | Inputs measure 16px, which is the fix — but only a real iPhone confirms it. **Skipped: no iOS device.** Android Chrome never focus-zooms, so this cannot affect the supported targets |
+| B2-30 | Keyboard operable | Tab to a habit row, press **Space** | Toggles. Tab order goes row → its delete → next row | 👤 | ✅ | Order and focusability verified 🤖; the keypress needs a real keyboard — **signed off in chat** |
+| B2-31 | Screen reader | VoiceOver / Narrator on a row | Announces the title as a **checkbox**, "checked"/"unchecked" | 👤 | ✅ | `role="checkbox"` + `aria-checked` are set — **signed off in chat** |
+| B2-32 | Real phone | `npm run dev -- -H 0.0.0.0`, open `http://<your-PC-ip>:3000` on your phone | Comfortable one-thumb use; nothing cramped or unreachable | 👤 | ✅ | **Signed off in chat** |
 
 ---
 
 ## Summary
 
 **Automated (🤖):** 25 ✅ / 0 ❌
-**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 7 rows: **B2-16, B2-25, B2-29, B2-30, B2-31, B2-32**
+**Yours (👤):** 5 ✅ / 0 ❌ / 0 ⚠️ / 1 ⏭️  — 6 rows: **B2-16, B2-25, B2-29, B2-30, B2-31, B2-32**
 
 ### Blockers — must be fixed before Block 3 opens
 _(list failing IDs here)_

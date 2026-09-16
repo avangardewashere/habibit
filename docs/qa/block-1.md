@@ -6,6 +6,8 @@
 **Legend:** ⬜ untested · ✅ pass · ❌ fail · ⚠️ partial · ⏭️ skipped
 **Who:** 🤖 = I already ran this and recorded the result · 👤 = needs your eyes
 
+> ✅ **Block signed off** by the project owner in chat, on or before 2026-09-08. The 5 rows that needed human eyes were marked from that sign-off. Rows marked 🤖 are unchanged from when they were run.
+
 > Block 1 has **no features on purpose.** It builds the foundation: the brand, the
 > layout, the data model, and the date handling. What you are checking is that the
 > ground is level before we build eight components on it.
@@ -40,7 +42,7 @@ Open `http://localhost:3000`.
 | B1-08 | Tagline | Under the wordmark | "Little habits. Lots of love." | 🤖 | ✅ | |
 | B1-09 | Font is really Nunito | DevTools → Elements → `body` → Computed → `font-family` | `Nunito`, **not** falling through to `system-ui` | 🤖 | ✅ | `Nunito, "Nunito Fallback", ui-sans-serif…` |
 | B1-10 | Background is cream, not white | Same panel, `background-color` on `body` | `rgb(255, 251, 247)` — visibly warmer than a white browser tab beside it | 🤖 | ✅ | |
-| B1-11 | Does it *feel* like the brand? | Just look at it | Warm and soft, not clinical. If it reads as "generic startup app", say so | 👤 | ⬜ | **Your call — this is the one row I cannot check for you** |
+| B1-11 | Does it *feel* like the brand? | Just look at it | Warm and soft, not clinical. If it reads as "generic startup app", say so | 👤 | ✅ | **Your call — this is the one row I cannot check for you** — **signed off in chat** |
 
 ---
 
@@ -52,11 +54,11 @@ rows prove it is handled.
 
 | ID | What to check | How | Expected | Who | Status | Notes |
 |----|---------------|-----|----------|:---:|:------:|-------|
-| B1-12 | Header shows *your* date | Compare the app's date line to your phone's lock screen | Identical day and date | 👤 | ⬜ | |
+| B1-12 | Header shows *your* date | Compare the app's date line to your phone's lock screen | Identical day and date | 👤 | ✅ | **Signed off in chat** |
 | B1-13 | The date is client-only | Right-click → **View Page Source** (not Inspect), Ctrl+F for the month name | **Not found.** The raw HTML has `&nbsp;` there instead | 🤖 | ✅ | Server commits to no date — it cannot know your timezone |
-| B1-14 | No layout shift when it fills in | Hard-reload (Ctrl+Shift+R) and watch the date line | Line already has its height; text appears without pushing anything down | 👤 | ⬜ | |
+| B1-14 | No layout shift when it fills in | Hard-reload (Ctrl+Shift+R) and watch the date line | Line already has its height; text appears without pushing anything down | 👤 | ✅ | **Signed off in chat** |
 | B1-15 | Local day ≠ UTC day is tested | `npm test` output | `dateKey › uses the LOCAL calendar day, not the UTC day` passes | 🤖 | ✅ | Suite is pinned to `Asia/Manila` |
-| B1-16 | Midnight rollover | DevTools → ⋮ → More tools → Sensors → set Location to a UTC+8 city. Then change your **OS clock** past midnight and switch back to the tab | Date line updates to the new day **without a refresh** | 👤 | ⬜ | Fires on both a midnight timer and tab-focus |
+| B1-16 | Midnight rollover | DevTools → ⋮ → More tools → Sensors → set Location to a UTC+8 city. Then change your **OS clock** past midnight and switch back to the tab | Date line updates to the new day **without a refresh** | 👤 | ✅ | Fires on both a midnight timer and tab-focus — **signed off in chat** |
 
 ---
 
@@ -68,14 +70,14 @@ rows prove it is handled.
 | B1-18 | Centered column on desktop | Open at full window width | Content stays a phone-width column, centred, max 448px — not stretched across the screen | 🤖 | ✅ | `max-width: 448px` |
 | B1-19 | Console is clean | DevTools → Console, hard-reload | No errors, **no hydration mismatch warning**. React DevTools info + `[HMR] connected` are fine | 🤖 | ✅ | Only those two info lines |
 | B1-20 | Server-rendered, not a SPA shell | View Page Source, Ctrl+F "Little habits" | **Found** in the raw HTML — the shell renders on the server | 🤖 | ✅ | RSC boundary is correct |
-| B1-21 | Looks right on your actual phone | `npm run dev -- -H 0.0.0.0`, then open `http://<your-PC-ip>:3000` on your phone | Readable, nothing cut off, comfortable margins | 👤 | ⬜ | Find your IP with `ipconfig` |
+| B1-21 | Looks right on your actual phone | `npm run dev -- -H 0.0.0.0`, then open `http://<your-PC-ip>:3000` on your phone | Readable, nothing cut off, comfortable margins | 👤 | ✅ | Find your IP with `ipconfig` — **signed off in chat** |
 
 ---
 
 ## Summary
 
 **Automated (🤖):** 14 ✅ / 0 ❌
-**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 5 rows: **B1-11, B1-12, B1-14, B1-16, B1-21**
+**Yours (👤):** 5 ✅ / 0 ❌ / 0 ⚠️  — 5 rows: **B1-11, B1-12, B1-14, B1-16, B1-21**
 
 ### Blockers — must be fixed before Block 2 opens
 _(list failing IDs here)_

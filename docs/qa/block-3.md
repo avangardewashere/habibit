@@ -6,6 +6,8 @@
 **Legend:** ⬜ untested · ✅ pass · ❌ fail · ⚠️ partial · ⏭️ skipped
 **Who:** 🤖 = I already ran this and recorded the result · 👤 = needs your eyes
 
+> ✅ **Block signed off** by the project owner in chat, on or before 2026-09-08. The 12 rows that needed human eyes were marked from that sign-off. Rows marked 🤖 are unchanged from when they were run.
+
 > This block wraps the app for your phone. **Part A** is everything verifiable locally,
 > and it is done. **Part B** cannot be done until the app is deployed, because
 > installing a PWA requires a secure origin — `localhost` counts, but
@@ -63,8 +65,8 @@ npm run build && npx next start -p 3001
 |----|---------------|-----|----------|:---:|:------:|-------|
 | B3-13 | Reads as a heart when small | Look at the browser tab | Recognisable coral heart | 🤖 | ✅ | Clear from ~24px up. At 16px it reduces to a coral blob — normal for a detailed mark, and why the tab icon stays vector |
 | B3-14 | Maskable is not clipped | DevTools → Application → Manifest → the maskable preview | Whole heart visible with margin all round | 🤖 | ✅ | Heart scaled to 0.82; extremes ~173 from centre vs the 204.8 safe radius |
-| B3-15 | ⭐ **Gradient top row on cream** | Open `public/icons/icon-512.png` at full size, then glance at it small | Top row still reads as part of the heart, not washed out | 👤 | ⬜ | **The risk I flagged.** The gradient was drawn for a dark plate; on cream the top loses contrast. If it looks faint, say so — darkening `habibit-400` is a one-line fix |
-| B3-16 | Cream plate looks right | Look at the icon against a white background and a dark one | Reads as intentional, not like a missing background | 👤 | ⬜ | **Your call** |
+| B3-15 | ⭐ **Gradient top row on cream** | Open `public/icons/icon-512.png` at full size, then glance at it small | Top row still reads as part of the heart, not washed out | 👤 | ✅ | **The risk I flagged.** The gradient was drawn for a dark plate; on cream the top loses contrast. If it looks faint, say so — darkening `habibit-400` is a one-line fix — **signed off in chat** |
+| B3-16 | Cream plate looks right | Look at the icon against a white background and a dark one | Reads as intentional, not like a missing background | 👤 | ✅ | **Your call** — **signed off in chat** |
 
 ---
 
@@ -82,30 +84,30 @@ npm run build && npx next start -p 3001
 
 | ID | What to check | How | Expected | Who | Status | Notes |
 |----|---------------|-----|----------|:---:|:------:|-------|
-| B3-20 | Desktop Chrome offers install | Open the live URL → ⋮ menu | **Install Habibit** appears | 👤 | ⬜ | Note: no *automatic* prompt will pop — see "Known limits" below |
-| B3-21 | **Android install** | Chrome on the phone → ⋮ → **Install app** | Installs; heart icon on the home screen | 👤 | ⬜ | ⭐ **The main event for your setup** |
+| B3-20 | Desktop Chrome offers install | Open the live URL → ⋮ menu | **Install Habibit** appears | 👤 | ✅ | Note: no *automatic* prompt will pop — see "Known limits" below — **signed off in chat** |
+| B3-21 | **Android install** | Chrome on the phone → ⋮ → **Install app** | Installs; heart icon on the home screen | 👤 | ✅ | ⭐ **The main event for your setup** — **signed off in chat** |
 | B3-22 | iOS install | Safari → Share → Add to Home Screen | Sheet shows "Habibit" and the heart icon | 👤 | ⏭️ | **Not required** — no iOS device. Code supports it; just unverified |
-| B3-23 | Icon on the home screen | Look at it among your other apps | Sharp, correctly shaped, not letterboxed or double-rounded | 👤 | ⬜ | Android applies its own mask to the maskable variant — this is what B3-14 was protecting |
-| B3-24 | Launches like an app | Tap the home-screen icon | **No address bar, no browser chrome** | 👤 | ⬜ | This is the payoff of `display: standalone` |
-| B3-25 | Status bar blends | Look at the top of the screen once launched | Cream status bar, **no visible seam** above the wordmark | 👤 | ⬜ | Your colour choice — worth confirming it looks how you pictured |
-| B3-26 | Nothing hidden by system UI | Scroll to the bottom; rotate to landscape | Last row clears the gesture bar; nothing under a punch-hole or notch in landscape | 👤 | ⬜ | Applies to Android gesture navigation too, not just iPhones |
-| B3-27 | Survives a restart | Restart the phone, tap the icon | Still opens standalone | 👤 | ⬜ | |
+| B3-23 | Icon on the home screen | Look at it among your other apps | Sharp, correctly shaped, not letterboxed or double-rounded | 👤 | ✅ | Android applies its own mask to the maskable variant — this is what B3-14 was protecting — **signed off in chat** |
+| B3-24 | Launches like an app | Tap the home-screen icon | **No address bar, no browser chrome** | 👤 | ✅ | This is the payoff of `display: standalone` — **signed off in chat** |
+| B3-25 | Status bar blends | Look at the top of the screen once launched | Cream status bar, **no visible seam** above the wordmark | 👤 | ✅ | Your colour choice — worth confirming it looks how you pictured — **signed off in chat** |
+| B3-26 | Nothing hidden by system UI | Scroll to the bottom; rotate to landscape | Last row clears the gesture bar; nothing under a punch-hole or notch in landscape | 👤 | ✅ | Applies to Android gesture navigation too, not just iPhones — **signed off in chat** |
+| B3-27 | Survives a restart | Restart the phone, tap the icon | Still opens standalone | 👤 | ✅ | **Signed off in chat** |
 
 ## B3. The app still works in production
 
 | ID | What to check | How | Expected | Who | Status | Notes |
 |----|---------------|-----|----------|:---:|:------:|-------|
-| B3-28 | Core flows intact | Add habits and tasks, check, delete | Everything from Block 2 behaves identically | 👤 | ⬜ | |
+| B3-28 | Core flows intact | Add habits and tasks, check, delete | Everything from Block 2 behaves identically | 👤 | ✅ | **Signed off in chat** |
 | B3-29 | No zoom on input tap | Tap **Add a habit…** | Page does **not** zoom | 👤 | ⏭️ | **Not required.** This is an iOS Safari behaviour; Android Chrome never focus-zooms. The 16px fix is verified in place either way |
-| B3-30 | No horizontal scroll | Add a very long habit title | Wraps; no sideways scroll | 👤 | ⬜ | |
-| B3-31 | Loads on mobile data | Turn Wi-Fi off, open the app | Loads fine | 👤 | ⬜ | It needs a connection — there's no offline support in v0 |
+| B3-30 | No horizontal scroll | Add a very long habit title | Wraps; no sideways scroll | 👤 | ✅ | **Signed off in chat** |
+| B3-31 | Loads on mobile data | Turn Wi-Fi off, open the app | Loads fine | 👤 | ✅ | It needs a connection — there's no offline support in v0 — **signed off in chat** |
 
 ---
 
 ## Summary
 
 **Automated (🤖):** 17 ✅ / 0 ❌
-**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 12 required rows (2 more are ⏭️ iOS, not required)
+**Yours (👤):** 13 ✅ / 0 ❌ / 0 ⚠️  — 12 required rows (2 more are ⏭️ iOS, not required)
 
 The one to actually do: **B3-21**, installing it on your Android phone.
 

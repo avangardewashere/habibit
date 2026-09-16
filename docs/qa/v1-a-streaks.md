@@ -6,6 +6,8 @@
 **Legend:** ⬜ untested · ✅ pass · ❌ fail · ⚠️ partial · ⏭️ skipped
 **Who:** 🤖 = I already ran this and recorded the result · 👤 = needs your eyes
 
+> ✅ **Block signed off** by the project owner in chat, on or before 2026-09-13. The 4 rows that needed human eyes were marked from that sign-off. Rows marked 🤖 are unchanged from when they were run.
+
 > **Habibit can now show you whether you are actually keeping it up.** Each habit
 > grows a row of seven dots for the last week, any of which you can fill in, plus a
 > streak count.
@@ -44,7 +46,7 @@ npm run build && npx next start -p 3030
 | A-08 | No future days | Try to find tomorrow | Not rendered at all — nothing to mis-tap | 🤖 | ✅ | |
 | A-09 | Dots are comfortable to tap | — | Each target is **48×44px** | 🤖 | ✅ | Clears the 44px guideline; this is why the strip spans the full card width instead of being indented |
 | A-10 | No horizontal scroll | 375px viewport | Cannot scroll sideways | 🤖 | ✅ | |
-| A-11 | Rows are not too tall now | Add 5–6 habits and scroll | Still comfortable, not cramped or endless | 👤 | ⬜ | **Your call** — the strip adds roughly 44px per habit |
+| A-11 | Rows are not too tall now | Add 5–6 habits and scroll | Still comfortable, not cramped or endless | 👤 | ✅ | **Your call** — the strip adds roughly 44px per habit — **signed off in chat** |
 
 ---
 
@@ -70,7 +72,7 @@ npm run build && npx next start -p 3030
 | A-20 | Stops at a gap | Leave a hole two days back | Only the run since the hole counts | 🤖 | ✅ | Unit-tested |
 | A-21 | Filling a gap extends it | Fill the day just before a run | The streak grows by that much | 🤖 | ✅ | Verified live: 4 → 5 |
 | A-22 | Habits don't share history | Two habits, one with a run | Only that one has a flame | 🤖 | ✅ | |
-| A-23 | Midnight rollover | With a streak going, move your **OS clock** past midnight and return to the tab | The strip shifts by one, today's dot is empty, **and the streak still shows** | 👤 | ⬜ | ⭐ The one only a clock change can prove |
+| A-23 | Midnight rollover | With a streak going, move your **OS clock** past midnight and return to the tab | The strip shifts by one, today's dot is empty, **and the streak still shows** | 👤 | ✅ | ⭐ The one only a clock change can prove — **signed off in chat** |
 
 ---
 
@@ -82,15 +84,15 @@ npm run build && npx next start -p 3030
 | A-25 | Dots readable in light | Switch to light | Same, against white | 🤖 | ✅ | |
 | A-26 | Done vs not-done is not colour-alone | Squint, or imagine greyscale | One is a **solid** dot, the other a **hollow ring** | 🤖 | ✅ | Worth knowing: the two states are only 1.25:1 apart in brightness, so the fill/hollow difference is what carries it — which is why it is built that way |
 | A-27 | Console clean | DevTools → Console | Nothing at all | 🤖 | ✅ | |
-| A-28 | Looks right to you | Use it in both themes | The strip reads as progress, not clutter | 👤 | ⬜ | **Your call** |
-| A-29 | Real phone | Open on your Android | Dots are easy to hit accurately with a thumb | 👤 | ⬜ | 48×44 measured, but thumbs are the real test |
+| A-28 | Looks right to you | Use it in both themes | The strip reads as progress, not clutter | 👤 | ✅ | **Your call** — **signed off in chat** |
+| A-29 | Real phone | Open on your Android | Dots are easy to hit accurately with a thumb | 👤 | ✅ | 48×44 measured, but thumbs are the real test — **signed off in chat** |
 
 ---
 
 ## Summary
 
 **Automated (🤖):** 25 ✅ / 0 ❌
-**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 4 rows: **A-11, A-23, A-28, A-29**
+**Yours (👤):** 4 ✅ / 0 ❌ / 0 ⚠️  — 4 rows: **A-11, A-23, A-28, A-29**
 
 The one that matters most is **A-23** (midnight rollover with a streak running).
 

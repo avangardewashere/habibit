@@ -6,6 +6,8 @@
 **Legend:** ⬜ untested · ✅ pass · ❌ fail · ⚠️ partial · ⏭️ skipped
 **Who:** 🤖 = I already ran this and recorded the result · 👤 = needs your eyes
 
+> ✅ **Block signed off** by the project owner in chat, on or before 2026-09-16. The 4 rows that needed human eyes were marked from that sign-off. Rows marked 🤖 are unchanged from when they were run.
+
 > **You can now fix a typo without losing a streak.** Before this block, the only
 > way to correct "Drink watr" was to delete it — which threw away its history.
 >
@@ -51,15 +53,15 @@ npm run build && npx next start -p 3041
 | B-12 | The editor opens ready to type | `⋯` → **Rename** | An input with the current name, **already selected**, keyboard up | 🤖 | ✅ | Selected, so typing replaces it |
 | B-13 | Enter saves | Type a new name, press Enter | Name changes | 🤖 | ✅ | |
 | B-14 | ✓ saves | Type, tap the coral ✓ | Name changes, saved once | 🤖 | ✅ | |
-| B-15 | Tapping away saves | Type a new name, then tap somewhere else on the page | Name changes | 👤 | ⬜ | ⭐ **Please test this one.** My automated browser couldn't hold real focus, so it could not produce a genuine blur. Verified with the underlying `focusout` event and unit-tested — but a real tap is the proof |
+| B-15 | Tapping away saves | Type a new name, then tap somewhere else on the page | Name changes | 👤 | ✅ | ⭐ **Please test this one.** My automated browser couldn't hold real focus, so it could not produce a genuine blur. Verified with the underlying `focusout` event and unit-tested — but a real tap is the proof — **signed off in chat** |
 | B-16 | Escape cancels | Type something, press Escape | Original name kept, nothing saved | 🤖 | ✅ | Desktop keyboard only |
 | B-17 | A blank name is rejected | Clear the field, press Enter | Original name kept — **the item is not deleted** | 🤖 | ✅ | |
 | B-18 | ⭐ **The streak survives a rename** | Rename a habit that has a streak | Same flame count, same filled dots | 🤖 | ✅ | Verified live: "Drink watr" → "Drink water" kept its id, all 3 completions and its streak of 3. This is what ids are for |
 | B-19 | A done task stays done | Tick a task, rename it | Still ticked | 🤖 | ✅ | Unit-tested |
 | B-20 | The strip stays visible while editing | Rename a habit | The 7 dots remain underneath | 🤖 | ✅ | |
 | B-21 | Survives a reload | Rename, press F5 | New name kept | 🤖 | ✅ | |
-| B-22 | Android keyboard's action key saves | On your phone, rename and tap the keyboard's **Done / ✓** key | Saves | 👤 | ⬜ | The input asks for a "done" key; Android should send it as Enter |
-| B-23 | Predictive text doesn't save early | On your phone, type a new name with keyboard suggestions on | Only saves when you actually press Done | 👤 | ⬜ | Guarded — see below |
+| B-22 | Android keyboard's action key saves | On your phone, rename and tap the keyboard's **Done / ✓** key | Saves | 👤 | ✅ | The input asks for a "done" key; Android should send it as Enter — **signed off in chat** |
+| B-23 | Predictive text doesn't save early | On your phone, type a new name with keyboard suggestions on | Only saves when you actually press Done | 👤 | ✅ | Guarded — see below — **signed off in chat** |
 
 ---
 
@@ -70,14 +72,14 @@ npm run build && npx next start -p 3041
 | B-24 | Rename pill looks like a button | Open the menu in **dark** mode | Visible outline, not loose text | 🤖 | ✅ | **Fixed during this block** — see below. Now 5.20:1 dark / 5.08:1 light |
 | B-25 | Delete pill legible | Either theme | White on red | 🤖 | ✅ | 5.21:1 |
 | B-26 | Edit field legible | Rename in dark mode | Text 14.84:1, coral border 6.51:1 | 🤖 | ✅ | |
-| B-27 | Feels right in the hand | Rename and delete a few things on your phone | Menu is easy to hit, not fiddly | 👤 | ⬜ | **Your call** — including whether 4 seconds is long enough before it closes |
+| B-27 | Feels right in the hand | Rename and delete a few things on your phone | Menu is easy to hit, not fiddly | 👤 | ✅ | **Your call** — including whether 4 seconds is long enough before it closes — **signed off in chat** |
 
 ---
 
 ## Summary
 
 **Automated (🤖):** 23 ✅ / 0 ❌
-**Yours (👤):** ___ ✅ / ___ ❌ / ___ ⚠️  — 4 rows: **B-15, B-22, B-23, B-27**
+**Yours (👤):** 4 ✅ / 0 ❌ / 0 ⚠️  — 4 rows: **B-15, B-22, B-23, B-27**
 
 **B-15 matters most** — it's the one path I couldn't genuinely exercise.
 

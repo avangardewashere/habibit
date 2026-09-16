@@ -1,34 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Habibit
 
-## Getting Started
+**Little habits. Lots of love.**
 
-First, run the development server:
+A gentle habit tracker for your phone. *Habibi* (love) + *habit* + *bit* (small).
+
+**Live:** https://habibit.vercel.app — open it in Chrome on Android, then ⋮ → **Install app**.
+
+---
+
+## What it does
+
+- **Daily habits** that reset every morning, and **one-off tasks** that stay done.
+- **A 7-day strip** under every habit. Missed logging a day? Tap its dot to fill it in.
+- **Streaks** that stay alive until midnight, so an unfinished today never zeros yesterday's run.
+- **Rename or delete** from a single `⋯` menu. Renaming keeps the whole history.
+- **Add several at once** by pasting a list, one habit per line.
+- **Light, dark, or match your device.** Every colour pair meets WCAG AA in both themes.
+- **Installable** as an app, and your data **stays on your device** (`localStorage`).
+
+## Stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Vitest + Testing Library · deployed on Vercel.
+
+No state library, UI kit, date library or backend. State is one pure reducer in React context.
+
+## Run it locally
+
+Needs Node 20.9 or newer.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` then `npm start` | Production build, and serve it |
+| `npm test` | The full test suite (145 tests) |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run lint` | ESLint |
+| `npm run icons` | Regenerate every app icon from `assets/habibit Icon.svg` |
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/          Page, layout, PWA manifest, global CSS and theme tokens
+components/   UI: habit/ and task/ sections, shared ui/ primitives
+lib/          Pure logic with no React: dates, storage, theme, titles
+store/        The reducer, selectors, and the provider that persists state
+scripts/      Icon generation
+docs/         Brand guide, backlog, version summary, and per-block QA checklists
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it was built
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+In small, testable blocks, each ending with a manual QA checklist signed off before
+the next began. The full story, including the bugs caught along the way, is in
+[`docs/summary-v1.md`](docs/summary-v1.md). The per-block checklists are in [`docs/qa/`](docs/qa/).
 
-## Deploy on Vercel
+## Where it's going
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**v2 — accounts and sync.** Your habits on every device, plus offline support.
+The first sign-in must upload existing local data, never replace it with an empty account.
