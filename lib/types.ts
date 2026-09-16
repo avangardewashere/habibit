@@ -1,23 +1,33 @@
 /**
- * Habibit core data model.
+ * Habibit core data model — schema version 2.
  *
- * This shape is deliberately normalized so it maps 1:1 onto database tables in
- * v2 (accounts + sync). v0 keeps it all in memory, but nothing here needs to
- * change when persistence arrives.
+ * Normalized so it maps 1:1 onto database tables. Version 2 adds the two things
+ * syncing between devices needs and version 1 never recorded:
+ *
+ * - **When** each record last changed (`updatedAt`), so two devices that edited
+ *   the same thing can agree on which edit is newer.
+ * - **What was deleted** (`deletedAt`). A record that simply vanishes cannot tell
+ *   another device it is gone, so deletes leave a tombstone instead. Selectors
+ *   hide tombstones; nothing in the UI ever sees them.
+ *
+ * The v1 → v2 upgrade lives in `lib/storage.ts`.
  */
 
 /** A habit recurs. It is never "done" — it is done *on a given day*. */
 export type Habit = {
   id: string;
   title: string;
-  emoji: string | null;
   /** ISO instant. */
   createdAt: string;
+  /** ISO instant of the last change to this row. Set on every write. */
+  updatedAt: string;
   /**
-   * Soft delete. Archiving hides a habit while keeping its completion history
-   * for stats. Always null in v0; the selectors already honour it.
+   * Hides a habit while keeping its history. No UI sets it yet; the selectors
+   * already honour it, so archiving stays a small change whenever it is wanted.
    */
   archivedAt: string | null;
+  /** Tombstone. Set by deleting; the row is kept so the delete can sync. */
+  deletedAt: string | null;
 };
 
 /** A task is one-and-done. Checking it is permanent. */
@@ -26,8 +36,12 @@ export type Task = {
   title: string;
   /** ISO instant. */
   createdAt: string;
+  /** ISO instant of the last change to this row. Set on every write. */
+  updatedAt: string;
   /** ISO instant, or null while the task is still open. */
   completedAt: string | null;
+  /** Tombstone. Set by deleting; the row is kept so the delete can sync. */
+  deletedAt: string | null;
 };
 
 /**
@@ -39,14 +53,26 @@ export type DateKey = string;
 /** `${habitId}::${dateKey}` — one key per (habit, day) pair. */
 export type CompletionKey = `${string}::${string}`;
 
+/**
+ * Whether a habit was kept on one day.
+ *
+ * Unticking sets `done: false` rather than removing the record. In v1 an untick
+ * erased the row, which is fine on one device but impossible to sync: the other
+ * device would still have its tick and no way to learn it was taken back.
+ */
+export type Completion = {
+  done: boolean;
+  /** ISO instant of the last tick or untick. */
+  updatedAt: string;
+};
+
 export type HabibitState = {
   habits: Habit[];
   tasks: Task[];
   /**
-   * A completion is a fact about a (habit, day) pair — exactly one row in a
-   * future `completions` table with a unique index on (user_id, habit_id, date).
-   * Keyed as a Record so "is this checked today?" is O(1) during render.
-   * The value is the ISO instant it was checked.
+   * One row per (habit, day) in a future `completions` table with a unique index
+   * on (user_id, habit_id, date). Keyed as a Record so "is this checked today?"
+   * is O(1) during render.
    */
-  completions: Record<CompletionKey, string>;
+  completions: Record<CompletionKey, Completion>;
 };

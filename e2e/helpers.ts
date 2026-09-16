@@ -25,11 +25,18 @@ export function envelope({
 }) {
   const at = '2026-09-01T00:00:00.000Z';
   return {
-    version: 1,
+    version: 2,
     state: {
-      habits: habits.map((h) => ({ ...h, emoji: null, createdAt: at, archivedAt: null })),
-      tasks: tasks.map((t) => ({ id: t.id, title: t.title, createdAt: at, completedAt: t.done ? at : null })),
-      completions: Object.fromEntries(completions.map(([id, day]) => [`${id}::${day}`, at])),
+      habits: habits.map((h) => ({ ...h, createdAt: at, updatedAt: at, archivedAt: null, deletedAt: null })),
+      tasks: tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        createdAt: at,
+        updatedAt: at,
+        completedAt: t.done ? at : null,
+        deletedAt: null,
+      })),
+      completions: Object.fromEntries(completions.map(([id, day]) => [`${id}::${day}`, { done: true, updatedAt: at }])),
     },
   };
 }
@@ -41,12 +48,17 @@ export function envelope({
  * so an unconditional write would quietly undo whatever the test just did and
  * make every persistence test pass for the wrong reason.
  */
-export async function seed(page: Page, data: ReturnType<typeof envelope>) {
+export async function seed(page: Page, data: object) {
+  await seedRaw(page, JSON.stringify(data));
+}
+
+/** Like `seed`, but stores the exact bytes given — for real captured data. */
+export async function seedRaw(page: Page, raw: string) {
   await page.addInitScript(
     ([key, value]) => {
       if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
     },
-    [STORAGE_KEY, JSON.stringify(data)] as const,
+    [STORAGE_KEY, raw] as const,
   );
 }
 

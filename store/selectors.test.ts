@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { completionKey } from '@/lib/keys';
 import type { DateKey, HabibitState } from '@/lib/types';
-import { currentStreak, recentDays } from './selectors';
+import { activeHabits, completedCount, currentStreak, isCompleted, liveTasks, openTasks, recentDays, sortedTasks } from './selectors';
 
 const TODAY: DateKey = '2026-09-08';
 
@@ -12,14 +12,15 @@ function withCompletions(days: DateKey[], habitId = 'h1'): HabibitState {
       {
         id: habitId,
         title: 'Drink water',
-        emoji: null,
         createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
         archivedAt: null,
+        deletedAt: null,
       },
     ],
     tasks: [],
     completions: Object.fromEntries(
-      days.map((day) => [completionKey(habitId, day), '2026-09-08T01:00:00.000Z']),
+      days.map((day) => [completionKey(habitId, day), { done: true, updatedAt: '2026-09-08T01:00:00.000Z' }]),
     ),
   };
 }
@@ -111,9 +112,10 @@ describe('currentStreak', () => {
     state.habits.push({
       id: 'h2',
       title: 'Stretch',
-      emoji: null,
       createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
       archivedAt: null,
+      deletedAt: null,
     });
 
     expect(currentStreak(state, 'h1', TODAY)).toBe(3);
@@ -122,5 +124,52 @@ describe('currentStreak', () => {
 
   it('is zero for a habit that does not exist', () => {
     expect(currentStreak(withCompletions([TODAY]), 'nope', TODAY)).toBe(0);
+  });
+});
+
+describe('an untick is stored, not erased', () => {
+  it('a done: false record is not completed', () => {
+    const state = withCompletions([TODAY]);
+    state.completions[completionKey('h1', TODAY)] = { done: false, updatedAt: '2026-09-08T02:00:00.000Z' };
+    expect(isCompleted(state, 'h1', TODAY)).toBe(false);
+    expect(completedCount(state, TODAY)).toBe(0);
+  });
+
+  it('a done: false record breaks a streak exactly like a missing day', () => {
+    const state = withCompletions(['2026-09-05', '2026-09-06', '2026-09-07', TODAY]);
+    state.completions[completionKey('h1', '2026-09-06')] = { done: false, updatedAt: '2026-09-08T02:00:00.000Z' };
+    expect(currentStreak(state, 'h1', TODAY)).toBe(2);
+  });
+});
+
+describe('tombstones are invisible', () => {
+  const at = '2026-09-08T00:00:00.000Z';
+
+  it('hides deleted habits, and archived ones too', () => {
+    const state = withCompletions([TODAY]);
+    state.habits.push(
+      { id: 'gone', title: 'Deleted', createdAt: at, updatedAt: at, archivedAt: null, deletedAt: at },
+      { id: 'shelf', title: 'Archived', createdAt: at, updatedAt: at, archivedAt: at, deletedAt: null },
+    );
+    state.completions[completionKey('gone', TODAY)] = { done: true, updatedAt: at };
+
+    expect(activeHabits(state).map((h) => h.id)).toEqual(['h1']);
+    // The deleted habit's tick is still stored, but must not count.
+    expect(completedCount(state, TODAY)).toBe(1);
+  });
+
+  it('hides deleted tasks from every task list, done or not', () => {
+    const state: HabibitState = {
+      habits: [],
+      completions: {},
+      tasks: [
+        { id: 't1', title: 'Open', createdAt: at, updatedAt: at, completedAt: null, deletedAt: null },
+        { id: 't2', title: 'Deleted open', createdAt: at, updatedAt: at, completedAt: null, deletedAt: at },
+        { id: 't3', title: 'Deleted done', createdAt: at, updatedAt: at, completedAt: at, deletedAt: at },
+      ],
+    };
+    expect(liveTasks(state).map((t) => t.id)).toEqual(['t1']);
+    expect(openTasks(state).map((t) => t.id)).toEqual(['t1']);
+    expect(sortedTasks(state).map((t) => t.id)).toEqual(['t1']);
   });
 });

@@ -63,8 +63,8 @@ Sync needs to know two things the app doesn't record today: **when** each thing 
 - Deletes become **tombstones**: `deletedAt` is set, and every selector hides the row.
 - Completions change from "the key exists" to a record with `done: true | false`. Unticking becomes a change that can sync.
 - **Storage schema v1 → v2** through the existing `migrate()` function. Old data upgrades; nothing is dropped.
-- **Decide `emoji` and `archivedAt`** before they become database columns. Recommendation: drop `emoji`
-  (never used), and keep `archivedAt` (costs nothing, and archiving is a likely feature).
+- **Decide `emoji` and `archivedAt`** before they become database columns. **Decided in Block B:** drop `emoji`
+  (never used), keep `archivedAt` (costs nothing, and archiving is a likely feature).
 - The reducer takes the current time as an input instead of reading the clock, so tests stay deterministic.
 
 **Done when:** migration tests load real v1 data (including the corrupt-data cases) with nothing lost,
