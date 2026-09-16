@@ -20,13 +20,13 @@ A gentle habit tracker for your phone. *Habibi* (love) + *habit* + *bit* (small)
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Vitest + Testing Library · deployed on Vercel.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Vitest + Testing Library · Playwright · deployed on Vercel.
 
 No state library, UI kit, date library or backend. State is one pure reducer in React context.
 
 ## Run it locally
 
-Needs Node 20.9 or newer.
+Needs Node 20.9 or newer. Browser tests also need Chromium once: `npx playwright install chromium`.
 
 ```bash
 npm install
@@ -39,7 +39,10 @@ Then open http://localhost:3000.
 |---|---|
 | `npm run dev` | Development server |
 | `npm run build` then `npm start` | Production build, and serve it |
-| `npm test` | The full test suite (145 tests) |
+| `npm run check` | Everything: typecheck, lint, unit tests, then browser tests. Run this before pushing |
+| `npm test` | Unit tests (145) |
+| `npm run e2e` | Browser tests (37 tests, as an Android phone and as desktop Chrome) against a production build |
+| `npm run e2e:report` | Open the last browser-test report, with a step-by-step trace of any failure |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run lint` | ESLint |
 | `npm run icons` | Regenerate every app icon from `assets/habibit Icon.svg` |
@@ -52,13 +55,15 @@ components/   UI: habit/ and task/ sections, shared ui/ primitives
 lib/          Pure logic with no React: dates, storage, theme, titles
 store/        The reducer, selectors, and the provider that persists state
 scripts/      Icon generation
+e2e/          Browser tests (Playwright)
+.github/      CI: every push runs the full check
 docs/         Brand guide, backlog, version summary, and per-block QA checklists
 ```
 
 ## How it was built
 
-In small, testable blocks, each ending with a manual QA checklist signed off before
-the next began. The full story, including the bugs caught along the way, is in
+In small, testable blocks. Through v1 each ended with a manual QA checklist signed off before
+the next began; from v2 the checklist is automated and runs on GitHub for every push. The full story, including the bugs caught along the way, is in
 [`docs/summary-v1.md`](docs/summary-v1.md). The per-block checklists are in [`docs/qa/`](docs/qa/).
 
 ## Where it's going
