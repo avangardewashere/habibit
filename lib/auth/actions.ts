@@ -80,6 +80,42 @@ export async function verifyLink(tokenHash: string): Promise<AuthResult> {
 }
 
 /**
+ * The link from Supabase's *default* email, used until custom email templates
+ * are available (the hosted project only allows editing them once a custom
+ * email sender is set up).
+ *
+ * That link goes through Supabase first, which then redirects here with the
+ * session — or the reason it failed — after the `#`:
+ *   #access_token=…&refresh_token=…&type=magiclink
+ *   #error=access_denied&error_code=otp_expired&error_description=…
+ * Like `token_hash`, it works in whichever browser opens it.
+ */
+export async function signInFromLinkFragment(fragment: string): Promise<AuthResult> {
+  const supabase = getSupabase();
+  if (!supabase) return OFF;
+
+  const values = new URLSearchParams(fragment.replace(/^#/, ''));
+
+  if (values.get('error_code') === 'otp_expired') {
+    return { ok: false, message: 'That code or link has expired or was already used. Ask for a new one.' };
+  }
+  if (values.has('error') || values.has('error_code')) {
+    return { ok: false, message: 'Something went wrong. Please try again.' };
+  }
+
+  const access_token = values.get('access_token');
+  const refresh_token = values.get('refresh_token');
+  if (!access_token || !refresh_token) {
+    return { ok: false, message: 'This sign-in link is incomplete. Ask for a new one from the app.' };
+  }
+
+  // Checks the token with the server before storing it, so a forged fragment
+  // can't sign anyone in.
+  const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+  return error ? friendly(error) : OK;
+}
+
+/**
  * Signs out *this device only*. Other devices stay signed in.
  *
  * Nothing on the device is deleted: in this block the account holds no data

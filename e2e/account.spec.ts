@@ -1,5 +1,6 @@
+import { createClient } from '@supabase/supabase-js';
 import { expect, test, type Page } from '@playwright/test';
-import { testEmail } from '../test-support/local-supabase';
+import { testEmail, type LocalSupabase } from '../test-support/local-supabase';
 import { addHabit, habitRow, openApp, STORAGE_KEY } from './helpers';
 
 /*
@@ -10,7 +11,7 @@ import { addHabit, habitRow, openApp, STORAGE_KEY } from './helpers';
  * use are the ones a person would find in their inbox.
  */
 
-const supabase = JSON.parse(process.env.HABIBIT_E2E_SUPABASE ?? 'null') as { mailUrl: string } | null;
+const supabase = JSON.parse(process.env.HABIBIT_E2E_SUPABASE ?? 'null') as LocalSupabase | null;
 test.skip(!supabase, 'Needs local Supabase: start Docker, then `npm run db:start`.');
 
 type SignInEmail = { code: string; link: string };
@@ -146,6 +147,55 @@ test('V2C-25 · a link that was already used explains itself and leads back to t
   await expect(other.getByRole('alert').filter({ hasText: 'expired or was already used' })).toBeVisible();
   await other.getByRole('link', { name: 'Back to Habibit' }).click();
   await expect(other.getByRole('heading', { name: 'Habibit' })).toBeVisible();
+  await expectSignedOut(other);
+  await otherBrowser.close();
+});
+
+/**
+ * The link Supabase's *default* email contains. The hosted project uses that
+ * email until a custom sender is set up, and its link is shaped differently:
+ * it goes through Supabase and comes back with the session after a `#`.
+ */
+async function defaultEmailLink(page: Page, email: string): Promise<string> {
+  const admin = createClient(supabase!.url, supabase!.secretKey, { auth: { persistSession: false } });
+  const origin = new URL(page.url()).origin;
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+    options: { redirectTo: `${origin}/auth/confirm` },
+  });
+  if (error) throw error;
+  return data.properties.action_link;
+}
+
+test("V2C-41 · ⭐ signing in with the link from Supabase's default email, in any browser", async ({ page, browser }) => {
+  const email = testEmail('default-link');
+  await openApp(page);
+  const link = await defaultEmailLink(page, email);
+
+  const otherBrowser = await browser.newContext();
+  const other = await otherBrowser.newPage();
+  await other.goto(link);
+
+  await expect(other).toHaveURL('/');
+  await expectSignedIn(other, email);
+  // The tokens must not be left sitting in the address bar.
+  expect(other.url()).not.toContain('access_token');
+  await otherBrowser.close();
+});
+
+test("V2C-42 · a used link from Supabase's default email explains itself", async ({ page, browser }) => {
+  const email = testEmail('default-used');
+  await openApp(page);
+  const link = await defaultEmailLink(page, email);
+  await page.goto(link);
+  await expectSignedIn(page, email);
+
+  const otherBrowser = await browser.newContext();
+  const other = await otherBrowser.newPage();
+  await other.goto(link);
+
+  await expect(other.getByRole('alert').filter({ hasText: 'expired or was already used' })).toBeVisible();
   await expectSignedOut(other);
   await otherBrowser.close();
 });
