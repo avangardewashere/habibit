@@ -48,7 +48,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={nunito.variable}>
+    /*
+     * suppressHydrationWarning: THEME_INIT_SCRIPT below sets data-theme on <html>
+     * before React loads, on purpose, so React finds an attribute it didn't
+     * render. It applies to this element's own attributes only, one level deep, so
+     * it can't hide a mismatch anywhere else in the app.
+     */
+    <html lang="en" className={nunito.variable} suppressHydrationWarning>
       <body>
         {/*
           Runs before the first paint. Without it, anyone using dark mode gets a
