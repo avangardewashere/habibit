@@ -22,7 +22,7 @@ export function AccountPanel({ account }: { account: AccountState }) {
 }
 
 function SignedIn({ email }: { email: string }) {
-  const { status, syncNow, signOutAndClear } = useSync();
+  const { status, pending, syncNow, signOutAndClear } = useSync();
   // Signing out empties the device, so it takes a confirming second tap, like deleting.
   const [step, setStep] = useState<'idle' | 'confirm' | 'unsynced'>('idle');
   const [busy, setBusy] = useState(false);
@@ -42,7 +42,7 @@ function SignedIn({ email }: { email: string }) {
         <p className="break-all font-bold text-ink">{email}</p>
       </div>
 
-      <SyncLine status={status} onRetry={() => void syncNow()} />
+      <SyncLine status={status} pending={pending} onRetry={() => void syncNow()} />
 
       {step === 'idle' && (
         <button type="button" onClick={() => setStep('confirm')} className={button}>
@@ -82,11 +82,18 @@ function SignedIn({ email }: { email: string }) {
   );
 }
 
-function SyncLine({ status, onRetry }: { status: SyncStatus; onRetry: () => void }) {
+function SyncLine({ status, pending, onRetry }: { status: SyncStatus; pending: number; onRetry: () => void }) {
+  const waiting = pending > 0 ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync.` : null;
+
   if (status.state === 'error') {
     return (
       <div className="space-y-1">
         <ErrorText>{status.message}</ErrorText>
+        {waiting && (
+          <p className="text-sm text-ink-soft" role="status">
+            {waiting}
+          </p>
+        )}
         <button type="button" onClick={onRetry} className={quietButton}>
           Try again
         </button>
@@ -96,9 +103,11 @@ function SyncLine({ status, onRetry }: { status: SyncStatus; onRetry: () => void
   const text =
     status.state === 'syncing'
       ? 'Syncing…'
-      : status.state === 'synced'
-        ? 'Synced. Your habits are saved to your account.'
-        : 'Your habits sync when you open Habibit.';
+      : waiting
+        ? waiting
+        : status.state === 'synced'
+          ? 'Synced. Your habits are saved to your account.'
+          : 'Your habits sync automatically while you’re signed in.';
   return (
     <p className="text-sm text-ink-soft" role="status">
       {text}

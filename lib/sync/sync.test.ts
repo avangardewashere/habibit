@@ -3,7 +3,7 @@ import type { Habit, HabibitState } from '@/lib/types';
 import { mergeStates, type Changes } from './merge';
 import type { RemoteStore } from './remote';
 import { completionToRow, habitToRow, rowToCompletion, rowToHabit } from './rows';
-import { syncOnce } from './sync';
+import { changeCount, syncOnce } from './sync';
 
 const T = (minute: number) => new Date(Date.UTC(2026, 8, 17, 8, minute)).toISOString();
 const habit = (id: string, title: string, updated = 0): Habit => ({
@@ -21,9 +21,9 @@ function fakeRemote(initial: HabibitState = empty(), options: { failPull?: boole
   let stored = structuredClone(initial);
   let pushes = 0;
   const store: RemoteStore & { stored: () => HabibitState; pushes: () => number; heal: () => void } = {
-    async pull() {
+    async pullSince() {
       if (options.failPull) throw new Error('offline');
-      return structuredClone(stored);
+      return { state: structuredClone(stored), cursor: null };
     },
     async push(changes: Changes) {
       pushes += 1;
@@ -56,17 +56,17 @@ describe('V2D: the first sign-in, against a fake account', () => {
 
   it('V2D-20 · empty device, account with data → the device receives it', async () => {
     const remote = fakeRemote(phone);
-    const { merged, uploaded } = await syncOnce(empty(), remote);
+    const { merged, pushed } = await syncOnce(empty(), remote);
     expect(merged).toEqual(phone);
-    expect(uploaded).toBe(0);
+    expect(changeCount(pushed)).toBe(0);
   });
 
   it('V2D-21 · ⭐ device with data, EMPTY account → everything uploaded, device keeps it', async () => {
     const remote = fakeRemote();
-    const { merged, uploaded } = await syncOnce(phone, remote);
+    const { merged, pushed } = await syncOnce(phone, remote);
     expect(merged).toEqual(phone);
     expect(remote.stored()).toEqual(phone);
-    expect(uploaded).toBe(2);
+    expect(changeCount(pushed)).toBe(2);
   });
 
   it('V2D-22 · both have data → both end up with everything', async () => {
@@ -104,7 +104,7 @@ describe('V2D: the first sign-in, against a fake account', () => {
     const remote = fakeRemote();
     const { merged } = await syncOnce(phone, remote);
     const again = await syncOnce(merged, remote);
-    expect(again.uploaded).toBe(0);
+    expect(changeCount(again.pushed)).toBe(0);
     expect(remote.pushes()).toBe(1);
   });
 });
