@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { useIsomorphicLayoutEffect } from '@/lib/useIsomorphicLayoutEffect';
 import { loadState, saveState, STORAGE_KEY } from '@/lib/storage';
 import type { HabibitState } from '@/lib/types';
-import { habibitReducer, initialState, stamp, type HabibitIntent } from './reducer';
+import { habibitReducer, initialState, stamp, type HabibitAction, type HabibitIntent } from './reducer';
 
 type HabibitContextValue = {
   state: HabibitState;
@@ -17,6 +17,11 @@ type HabibitContextValue = {
   mergeRemote: (state: HabibitState) => void;
   /** Empties this device. Used by sign-out. */
   clearDevice: () => void;
+  /**
+   * Calls `listener` with every edit made on this device (never with data that
+   * arrived by sync). Sync uses it to know what to upload. Returns an unsubscribe.
+   */
+  subscribeToEdits: (listener: (action: HabibitAction) => void) => () => void;
 };
 
 const HabibitContext = createContext<HabibitContextValue | null>(null);
@@ -29,7 +34,18 @@ export function HabibitProvider({ children }: { children: ReactNode }) {
    * keeps the reducer pure: React may call it twice (StrictMode does), and both
    * calls must agree — including on a brand-new habit's id.
    */
-  const dispatch = useCallback((intent: HabibitIntent) => rawDispatch(stamp(intent)), []);
+  const editListeners = useRef(new Set<(action: HabibitAction) => void>());
+  const dispatch = useCallback((intent: HabibitIntent) => {
+    const action = stamp(intent);
+    rawDispatch(action);
+    editListeners.current.forEach((listener) => listener(action));
+  }, []);
+  const subscribeToEdits = useCallback((listener: (action: HabibitAction) => void) => {
+    editListeners.current.add(listener);
+    return () => {
+      editListeners.current.delete(listener);
+    };
+  }, []);
   const [saveFailed, setSaveFailed] = useState(false);
 
   /**
@@ -91,8 +107,8 @@ export function HabibitProvider({ children }: { children: ReactNode }) {
   const clearDevice = useCallback(() => rawDispatch({ type: 'CLEAR_DEVICE' }), []);
 
   const value = useMemo(
-    () => ({ state, dispatch, saveFailed, mergeRemote, clearDevice }),
-    [state, dispatch, saveFailed, mergeRemote, clearDevice],
+    () => ({ state, dispatch, saveFailed, mergeRemote, clearDevice, subscribeToEdits }),
+    [state, dispatch, saveFailed, mergeRemote, clearDevice, subscribeToEdits],
   );
 
   return <HabibitContext.Provider value={value}>{children}</HabibitContext.Provider>;

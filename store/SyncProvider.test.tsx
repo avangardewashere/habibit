@@ -32,10 +32,10 @@ function controlledRemote(data: HabibitState) {
   const pushed: Changes[] = [];
   let pulls = 0;
   const remote: RemoteStore = {
-    async pull() {
+    async pullSince() {
       pulls += 1;
       await gate();
-      return structuredClone(data);
+      return { state: structuredClone(data), cursor: null };
     },
     async push(changes) {
       pushed.push(changes);

@@ -6,7 +6,16 @@ import { signOut as signOutOfAccount } from '@/lib/auth/actions';
 import { useAccount } from '@/lib/auth/session';
 import { getSupabase } from '@/lib/supabase/client';
 import { supabaseRemote, type RemoteStore } from '@/lib/sync/remote';
-import { syncOnce } from '@/lib/sync/sync';
+import {
+  collectChanges,
+  outboxKeysFor,
+  syncChanges,
+  syncOnce,
+  touchedBy,
+  type OutboxKey,
+  type SyncResult,
+} from '@/lib/sync/sync';
+import type { HabibitState } from '@/lib/types';
 import { useHabibit } from './HabibitProvider';
 
 export type SyncStatus =
@@ -18,7 +27,9 @@ export type SyncStatus =
 
 type SyncContextValue = {
   status: SyncStatus;
-  /** Runs a sync now. Resolves `true` only if this device and the account fully match. */
+  /** Edits on this device the account hasn't confirmed yet. */
+  pending: number;
+  /** Runs a sync now. Resolves `true` only if it fully succeeded. */
   syncNow: () => Promise<boolean>;
   /**
    * Signs out and empties this device. Unless `force` is set, first makes sure
@@ -28,19 +39,40 @@ type SyncContextValue = {
   signOutAndClear: (options?: { force?: boolean }) => Promise<boolean>;
 };
 
-const SyncContext = createContext<SyncContextValue | null>(null);
+/*
+ * A harmless default, so components that show sync status (the account button)
+ * still render on their own, e.g. in a test or a build without accounts.
+ */
+const SyncContext = createContext<SyncContextValue>({
+  status: { state: 'off' },
+  pending: 0,
+  syncNow: async () => false,
+  signOutAndClear: async () => false,
+});
 
-/** Don't sync again on every tab switch; once a minute is plenty until Block E. */
-const REFOCUS_GAP_MS = 60_000;
+/** Your choice: an open app checks for changes this often, while it's visible. */
+export const POLL_MS = 30_000;
+/** Edits in quick succession (ticking several habits) go up together. */
+export const EDIT_DEBOUNCE_MS = 1_500;
 
-const OFFLINE_MESSAGE = 'Couldn’t reach your account. Your habits are safe on this device and will sync next time.';
+const OFFLINE_MESSAGE = 'Couldn’t reach your account. Your habits are safe on this device and will sync when it’s back.';
+
+function updatedAtOf(state: HabibitState, key: OutboxKey): string | undefined {
+  const c = collectChanges(state, [key]);
+  return c.habits[0]?.updatedAt ?? c.tasks[0]?.updatedAt ?? c.completions[0]?.[1].updatedAt;
+}
 
 /**
- * Keeps this device and the signed-in account combined.
+ * Keeps this device and the signed-in account in step.
  *
- * Syncs when someone signs in, when the app opens already signed in, and when
- * it comes back to the foreground. It only ever *adds* the account's data to the
- * device through a merge, and only after the upload has succeeded.
+ * - **Opening the app or signing in** does the full combine from Block D. It is
+ *   the safety net: anything a closed tab never uploaded is caught here.
+ * - **While the app is open**, small syncs: edits go up shortly after they're
+ *   made, and changes from other devices come down every 30 seconds while the app
+ *   is visible, and whenever it comes back into view.
+ *
+ * Nothing on the device changes unless a sync succeeds, and even then the result
+ * is merged into the device's *current* data, so an edit made mid-sync survives.
  */
 export function SyncProvider({
   children,
@@ -54,8 +86,9 @@ export function SyncProvider({
   createRemote?: () => RemoteStore | null;
 }) {
   const account = useAccount();
-  const { state, mergeRemote, clearDevice } = useHabibit();
+  const { state, mergeRemote, clearDevice, subscribeToEdits } = useHabibit();
   const [status, setStatus] = useState<SyncStatus>({ state: 'off' });
+  const [pending, setPending] = useState(0);
 
   const signedIn = account.status === 'signed-in';
 
@@ -65,68 +98,121 @@ export function SyncProvider({
     latest.current = state;
   }, [state]);
 
+  const outbox = useRef(new Map<OutboxKey, true>());
+  /** The account's server time up to which this device has seen everything. `null` until a full combine. */
+  const cursor = useRef<string | null>(null);
   /*
    * Bumped on sign-out. A sync that was already in flight when the device was
    * cleared must not pour the account's data back onto it when it finishes.
    */
   const generation = useRef(0);
   const inFlight = useRef<Promise<boolean> | null>(null);
-  const lastSyncAt = useRef(0);
   const createRemoteRef = useRef(createRemote);
+  /** The current `run`, for the follow-up sync it schedules for itself. */
+  const runRef = useRef<((kind: 'full' | 'small') => Promise<boolean>) | null>(null);
 
-  const syncNow = useCallback((): Promise<boolean> => {
-    if (inFlight.current) return inFlight.current;
-    const remote = createRemoteRef.current();
-    if (!remote) return Promise.resolve(false);
+  const run = useCallback(
+    (kind: 'full' | 'small'): Promise<boolean> => {
+      if (inFlight.current) return inFlight.current;
+      const remote = createRemoteRef.current();
+      if (!remote) return Promise.resolve(false);
 
-    const startedIn = generation.current;
-    setStatus({ state: 'syncing' });
+      const startedIn = generation.current;
+      setStatus({ state: 'syncing' });
 
-    const run = syncOnce(latest.current, remote)
-      .then(({ merged }) => {
-        if (generation.current !== startedIn) return false;
-        mergeRemote(merged);
-        lastSyncAt.current = Date.now();
-        setStatus({ state: 'synced', at: new Date() });
-        return true;
-      })
-      .catch(() => {
-        if (generation.current !== startedIn) return false;
-        setStatus({ state: 'error', message: OFFLINE_MESSAGE });
-        return false;
-      })
-      .finally(() => {
-        inFlight.current = null;
-      });
+      const work: Promise<SyncResult> =
+        kind === 'full'
+          ? syncOnce(latest.current, remote)
+          : syncChanges(latest.current, outbox.current.keys(), cursor.current, remote);
 
-    inFlight.current = run;
-    return run;
-  }, [mergeRemote]);
+      const attempt = work
+        .then((result) => {
+          if (generation.current !== startedIn) return false;
+          mergeRemote(result.merged);
+          cursor.current = result.cursor ?? cursor.current;
 
-  // Sign-in, or opening the app while already signed in.
+          // Tick off only what was sent unchanged. An edit made while this sync
+          // was running has a newer updatedAt, so it stays for the next one.
+          const sent = outboxKeysFor(result.pushed);
+          for (const key of [...outbox.current.keys()]) {
+            const now = updatedAtOf(latest.current, key);
+            const sentAt = sent.get(key) ?? (kind === 'full' ? updatedAtOf(result.merged, key) : undefined);
+            // A record that no longer exists here has nothing left to send.
+            if (now === undefined || sentAt === now) outbox.current.delete(key);
+          }
+          setPending(outbox.current.size);
+          setStatus({ state: 'synced', at: new Date() });
+          // Edits made while this sync was running are still waiting: send them now.
+          if (outbox.current.size > 0) setTimeout(() => void runRef.current?.('small'), 0);
+          return true;
+        })
+        .catch(() => {
+          if (generation.current !== startedIn) return false;
+          setStatus({ state: 'error', message: OFFLINE_MESSAGE });
+          return false;
+        })
+        .finally(() => {
+          inFlight.current = null;
+        });
+
+      inFlight.current = attempt;
+      return attempt;
+    },
+    [mergeRemote],
+  );
+
+  useEffect(() => {
+    runRef.current = run;
+  }, [run]);
+
+  const syncNow = useCallback(() => run(cursor.current === null ? 'full' : 'small'), [run]);
+
+  // Sign-in, or opening the app already signed in: the full combine.
   useEffect(() => {
     if (!signedIn) return;
-    void syncNow();
-  }, [signedIn, syncNow]);
+    void run('full');
+  }, [signedIn, run]);
 
-  // Coming back to the app: a phone resumes it rather than reopening it.
+  // Every edit on this device goes in the outbox, and up shortly after.
   useEffect(() => {
     if (!signedIn) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribe = subscribeToEdits((action) => {
+      const key = touchedBy(action);
+      if (!key) return;
+      outbox.current.set(key, true);
+      setPending(outbox.current.size);
+      clearTimeout(timer);
+      timer = setTimeout(() => void syncNow(), EDIT_DEBOUNCE_MS);
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [signedIn, subscribeToEdits, syncNow]);
+
+  // Changes from other devices: every 30 seconds while visible, and on coming back into view.
+  useEffect(() => {
+    if (!signedIn) return;
+    const poll = setInterval(() => {
+      if (document.visibilityState === 'visible') void syncNow();
+    }, POLL_MS);
     function onVisible() {
-      if (document.visibilityState === 'visible' && Date.now() - lastSyncAt.current > REFOCUS_GAP_MS) {
-        void syncNow();
-      }
+      if (document.visibilityState === 'visible') void syncNow();
     }
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [signedIn, syncNow]);
 
   const signOutAndClear = useCallback(
     async ({ force = false }: { force?: boolean } = {}): Promise<boolean> => {
       if (!force) {
-        // Wait out any sync already running, then make sure the account is fully up to date.
+        // Wait out any sync already running, then make sure the account has everything.
         await inFlight.current;
-        if (!(await syncNow())) return false;
+        if (!(await syncNow()) || outbox.current.size > 0) return false;
       }
 
       generation.current += 1;
@@ -135,6 +221,9 @@ export function SyncProvider({
         setStatus({ state: 'error', message: result.message });
         return false;
       }
+      outbox.current.clear();
+      cursor.current = null;
+      setPending(0);
       clearDevice();
       setStatus({ state: 'off' });
       return true;
@@ -143,15 +232,18 @@ export function SyncProvider({
   );
 
   const value = useMemo<SyncContextValue>(
-    () => ({ status: signedIn ? status : { state: 'off' }, syncNow, signOutAndClear }),
-    [signedIn, status, syncNow, signOutAndClear],
+    () => ({
+      status: signedIn ? status : { state: 'off' },
+      pending: signedIn ? pending : 0,
+      syncNow,
+      signOutAndClear,
+    }),
+    [signedIn, status, pending, syncNow, signOutAndClear],
   );
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;
 }
 
 export function useSync(): SyncContextValue {
-  const value = useContext(SyncContext);
-  if (!value) throw new Error('useSync must be used inside <SyncProvider>');
-  return value;
+  return useContext(SyncContext);
 }
