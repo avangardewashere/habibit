@@ -1,7 +1,25 @@
 import { defineConfig, devices } from '@playwright/test';
+import { findLocalSupabase, type LocalSupabase } from './test-support/local-supabase';
 
 const PORT = 3100;
 const isCI = Boolean(process.env.CI);
+
+/*
+ * The app under test is built against the local Supabase in Docker, never the
+ * real project. Next bakes NEXT_PUBLIC_* values into the bundle at build time,
+ * so they are passed to the build below; values set here win over .env.local.
+ *
+ * Without local Supabase the account tests skip locally, but CI refuses to run
+ * rather than quietly skipping the most security-sensitive tests.
+ */
+// Looked up once by the main process; test workers load this file again and
+// inherit the answer through the environment instead of asking Docker each time.
+const supabase: LocalSupabase | null =
+  process.env.HABIBIT_E2E_SUPABASE !== undefined
+    ? JSON.parse(process.env.HABIBIT_E2E_SUPABASE)
+    : findLocalSupabase();
+process.env.HABIBIT_E2E_SUPABASE = JSON.stringify(supabase);
+if (!supabase && isCI) throw new Error('CI must run the browser tests against local Supabase.');
 
 /**
  * Browser tests: the automated replacement for the manual QA checklists.
@@ -43,5 +61,11 @@ export default defineConfig({
     // A local run reuses a server you already started; CI always builds fresh.
     reuseExistingServer: !isCI,
     timeout: 240_000,
+    env: supabase
+      ? {
+          NEXT_PUBLIC_SUPABASE_URL: supabase.url,
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: supabase.publishableKey,
+        }
+      : {},
   },
 });

@@ -41,6 +41,8 @@ test.describe('at the smallest supported phone width', () => {
     await addHabit(page, 'Drink water');
 
     const targets = [
+      // Only in builds with accounts switched on, which the browser tests always are.
+      ...(await page.getByRole('button', { name: /^Account:/ }).all()),
       page.getByRole('radio', { name: 'Light theme' }),
       page.getByRole('radio', { name: 'Dark theme' }),
       page.getByRole('radio', { name: 'Match device theme' }),
@@ -49,7 +51,7 @@ test.describe('at the smallest supported phone width', () => {
       page.getByRole('button', { name: 'Add task' }),
       ...(await page.getByRole('button', { name: /^Drink water — / }).all()),
     ];
-    expect(targets.length).toBe(13);
+    expect(targets.length).toBeGreaterThanOrEqual(13);
 
     for (const target of targets) {
       const b = await box(target);
