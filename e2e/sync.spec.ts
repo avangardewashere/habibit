@@ -142,7 +142,6 @@ test('V2D-54 · changes made after signing in reach the other device the next ti
   await expect(habitRow(pc.page, 'Added on phone')).toBeVisible();
 
   // ...and the PC deletes it, which has to reach the phone as a tombstone.
-
   await moreActions(pc.page, 'Added on phone').click();
   await pc.page.getByRole('button', { name: /^Delete Added on phone/ }).click();
   await pc.page.reload();
@@ -185,7 +184,8 @@ test('V2D-56 · cancelling sign-out keeps everything', async ({ page }) => {
 
   await openAccount(page);
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel' }).click();
+  // exact: the account button's label contains the test email, which contains "cancel".
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
   await expect(page.getByRole('button', { name: `Account: signed in as ${email}` })).toBeVisible();
   await expect(habitRow(page, 'Drink water')).toBeVisible();
@@ -205,7 +205,8 @@ test.describe('when the account can’t be reached', () => {
     await expect(page.getByRole('button', { name: `Account: signed in as ${email}` })).toBeVisible();
 
     await openAccount(page);
-    await expect(page.getByRole('alert').filter({ hasText: 'Couldn’t reach your account' })).toBeVisible();
+    // Supabase retries a failed read three times (1s, 2s, 4s) before giving up, so allow for that.
+    await expect(page.getByRole('alert').filter({ hasText: 'Couldn’t reach your account' })).toBeVisible({ timeout: 20_000 });
     await expect(habitRow(page, 'Drink water')).toBeVisible();
     expect(await accountHabitTitles(data.user!.id)).toEqual([]);
 
