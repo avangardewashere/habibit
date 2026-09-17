@@ -144,6 +144,9 @@ win or lose unexpectedly. That's acceptable for one person's own devices; it's r
 **Tests:** two simulated devices, covering edit/edit, edit/delete, rename on both, a completion ticked
 on one and unticked on the other, and the same change delivered twice (must be harmless).
 
+**Decided in Block E:** open devices check every 30 s while visible and on switching back; a dot on the
+account button shows waiting or failing sync. Report: `docs/qa/v2-e-live-sync.md`.
+
 ---
 
 ## Block F: Offline
