@@ -123,6 +123,10 @@ haven't synced yet, then clears the account's data from the device, so a shared 
 
 **Done when:** every row above passes against both a fake server and the local Supabase.
 
+**Decided in Block D:** sign-out clears the device (warning first if unsynced); same-named habits are kept
+separately; sync runs at sign-in, on every app open, and on returning to the foreground. Report:
+`docs/qa/v2-d-first-sign-in.md`.
+
 ---
 
 ## Block E: Sync between devices

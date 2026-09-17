@@ -1,5 +1,6 @@
 import { completionKey } from '@/lib/keys';
 import { newId } from '@/lib/id';
+import { mergeStates } from '@/lib/sync/merge';
 import type { DateKey, HabibitState } from '@/lib/types';
 
 export const initialState: HabibitState = {
@@ -49,6 +50,14 @@ export type HabibitAction =
    * reaches here it is already trusted.
    */
   | { type: 'HYDRATE'; state: HabibitState }
+  /**
+   * Combine what the account holds into the device's *current* state, latest
+   * change winning per record. Merged into the current state rather than
+   * replacing it, so an edit made while a sync was in flight is never lost.
+   */
+  | { type: 'MERGE_REMOTE'; state: HabibitState }
+  /** Sign-out: the device goes back to empty. The account keeps everything. */
+  | { type: 'CLEAR_DEVICE' }
   | Stamped<HabibitIntent>;
 
 /** Turns what the UI asked for into a replayable action. The only impure step. */
@@ -75,6 +84,14 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
   switch (action.type) {
     case 'HYDRATE':
       return action.state;
+
+    case 'MERGE_REMOTE':
+      return mergeStates(state, action.state);
+
+    case 'CLEAR_DEVICE':
+      // A new object, never `initialState` itself: the provider skips saving
+      // `initialState`, and an empty device has to actually be written.
+      return { habits: [], tasks: [], completions: {} };
 
     case 'ADD_HABIT': {
       const title = action.title.trim();

@@ -57,6 +57,12 @@ async function expectSignedIn(page: Page, email: string) {
   await expect(page.getByRole('button', { name: `Account: signed in as ${email}` })).toBeVisible();
 }
 
+/** Signing out takes a confirming second tap, because it empties the device. */
+async function signOutAndClear(page: Page) {
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign out and clear this device' }).click();
+}
+
 async function expectSignedOut(page: Page) {
   await expect(page.getByRole('button', { name: 'Account: sign in to sync' })).toBeVisible();
 }
@@ -236,30 +242,31 @@ test('V2C-28 · signing out, and staying signed out after a reload', async ({ pa
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expectSignedIn(page, email);
 
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  await signOutAndClear(page);
   await expectSignedOut(page);
   await page.reload();
   await expectSignedOut(page);
 });
 
-test('V2C-29 · ⭐ signing in and out leaves the habits on this device exactly as they were', async ({ page }) => {
-  // There is no sync yet, so an account must neither copy, change nor clear local data.
+test('V2C-29 · ⭐ signing in never removes or changes the habits already on this device', async ({ page }) => {
+  // Block C checked the stored bytes were untouched. Since Block D, signing in
+  // uploads and merges, so storage legitimately changes; what must not change is
+  // what the person has. Sign-out now clears the device: see e2e/sync.spec.ts.
   const email = testEmail('local');
   await openApp(page);
   await addHabit(page, 'Drink water');
   await habitRow(page, 'Drink water').click();
-  const before = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
 
   const { code } = await requestCode(page, email);
   await page.getByRole('textbox', { name: 'Sign-in code' }).fill(code);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expectSignedIn(page, email);
-  expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(before);
 
-  await page.getByRole('button', { name: 'Sign out' }).click();
-  await expectSignedOut(page);
-  expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(before);
   await expect(habitRow(page, 'Drink water')).toBeChecked();
+  await page.reload();
+  await expect(habitRow(page, 'Drink water')).toBeChecked();
+  const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), STORAGE_KEY);
+  expect(stored.state.habits.map((h: { title: string }) => h.title)).toEqual(['Drink water']);
 });
 
 test('V2C-30 · the whole sign-in flow keeps the console clean', async ({ page }) => {
@@ -275,7 +282,7 @@ test('V2C-30 · the whole sign-in flow keeps the console clean', async ({ page }
   await page.goto(link);
   await expectSignedIn(page, email);
   await openAccount(page);
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  await signOutAndClear(page);
   await expectSignedOut(page);
 
   expect(problems).toEqual([]);
