@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { looksLikeEmail, requestSignIn, signOut, verifyCode } from '@/lib/auth/actions';
+import { looksLikeEmail, requestSignIn, verifyCode } from '@/lib/auth/actions';
 import type { AccountState } from '@/lib/auth/session';
+import { useSync, type SyncStatus } from '@/store/SyncProvider';
 
 const button =
   'min-h-11 w-full touch-manipulation rounded-full bg-accent px-4 text-sm font-extrabold text-on-accent transition active:scale-[0.98] disabled:bg-line disabled:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
@@ -21,14 +22,17 @@ export function AccountPanel({ account }: { account: AccountState }) {
 }
 
 function SignedIn({ email }: { email: string }) {
+  const { status, syncNow, signOutAndClear } = useSync();
+  // Signing out empties the device, so it takes a confirming second tap, like deleting.
+  const [step, setStep] = useState<'idle' | 'confirm' | 'unsynced'>('idle');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function onSignOut() {
+  async function onSignOut(force: boolean) {
     setBusy(true);
-    const result = await signOut();
+    const done = await signOutAndClear({ force });
     setBusy(false);
-    if (!result.ok) setError(result.message);
+    // Not done without force means the account couldn't be reached: say so before losing anything.
+    if (!done && !force) setStep('unsynced');
   }
 
   return (
@@ -37,14 +41,68 @@ function SignedIn({ email }: { email: string }) {
         <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Signed in as</p>
         <p className="break-all font-bold text-ink">{email}</p>
       </div>
-      <p className="text-sm text-ink-soft">
-        Syncing between devices arrives in the next update. Your habits are still saved on this device.
-      </p>
-      {error && <ErrorText>{error}</ErrorText>}
-      <button type="button" onClick={onSignOut} disabled={busy} className={button}>
-        {busy ? 'Signing out…' : 'Sign out'}
-      </button>
+
+      <SyncLine status={status} onRetry={() => void syncNow()} />
+
+      {step === 'idle' && (
+        <button type="button" onClick={() => setStep('confirm')} className={button}>
+          Sign out
+        </button>
+      )}
+
+      {step === 'confirm' && (
+        <div className="space-y-3">
+          <p className="text-sm text-ink">
+            Signing out removes your habits from this device. They stay safe in your account.
+          </p>
+          <button type="button" onClick={() => onSignOut(false)} disabled={busy} className={button}>
+            {busy ? 'Signing out…' : 'Sign out and clear this device'}
+          </button>
+          <button type="button" onClick={() => setStep('idle')} disabled={busy} className={quietButton}>
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {step === 'unsynced' && (
+        <div className="space-y-3">
+          <ErrorText>
+            Couldn’t reach your account, so recent changes on this device may not be saved there yet. Signing
+            out now would lose them.
+          </ErrorText>
+          <button type="button" onClick={() => onSignOut(true)} disabled={busy} className={button}>
+            {busy ? 'Signing out…' : 'Sign out anyway'}
+          </button>
+          <button type="button" onClick={() => setStep('idle')} disabled={busy} className={quietButton}>
+            Stay signed in
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+function SyncLine({ status, onRetry }: { status: SyncStatus; onRetry: () => void }) {
+  if (status.state === 'error') {
+    return (
+      <div className="space-y-1">
+        <ErrorText>{status.message}</ErrorText>
+        <button type="button" onClick={onRetry} className={quietButton}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+  const text =
+    status.state === 'syncing'
+      ? 'Syncing…'
+      : status.state === 'synced'
+        ? 'Synced. Your habits are saved to your account.'
+        : 'Your habits sync when you open Habibit.';
+  return (
+    <p className="text-sm text-ink-soft" role="status">
+      {text}
+    </p>
   );
 }
 

@@ -13,6 +13,10 @@ type HabibitContextValue = {
   dispatch: (intent: HabibitIntent) => void;
   /** True once a write to storage has failed, so the UI can stop pretending. */
   saveFailed: boolean;
+  /** Merges the account's data into the device's current data. Used by sync. */
+  mergeRemote: (state: HabibitState) => void;
+  /** Empties this device. Used by sign-out. */
+  clearDevice: () => void;
 };
 
 const HabibitContext = createContext<HabibitContextValue | null>(null);
@@ -83,7 +87,13 @@ export function HabibitProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', onStorage);
   }, [hydrate]);
 
-  const value = useMemo(() => ({ state, dispatch, saveFailed }), [state, dispatch, saveFailed]);
+  const mergeRemote = useCallback((remote: HabibitState) => rawDispatch({ type: 'MERGE_REMOTE', state: remote }), []);
+  const clearDevice = useCallback(() => rawDispatch({ type: 'CLEAR_DEVICE' }), []);
+
+  const value = useMemo(
+    () => ({ state, dispatch, saveFailed, mergeRemote, clearDevice }),
+    [state, dispatch, saveFailed, mergeRemote, clearDevice],
+  );
 
   return <HabibitContext.Provider value={value}>{children}</HabibitContext.Provider>;
 }
