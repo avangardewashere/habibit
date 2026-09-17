@@ -196,6 +196,8 @@ test("V2C-42 · a used link from Supabase's default email explains itself", asyn
   await other.goto(link);
 
   await expect(other.getByRole('alert').filter({ hasText: 'expired or was already used' })).toBeVisible();
+  // The error page has no header, so go back to the app before checking the account.
+  await other.getByRole('link', { name: 'Back to Habibit' }).click();
   await expectSignedOut(other);
   await otherBrowser.close();
 });
