@@ -22,9 +22,9 @@ npm run check
 
 | | Before | Now |
 |---|---:|---:|
-| Unit tests | 180 | **183** |
+| Unit tests | 180 | **189** |
 | Database security tests *(new)* | — | **19** |
-| Browser tests | 44 (88 runs) | **57 (114 runs)** |
+| Browser tests | 44 (88 runs) | **59 (118 runs)** |
 
 | New command | What it does |
 |---|---|
@@ -228,3 +228,47 @@ handful of emails per hour. Real users need your own email provider (Authenticat
 | `@supabase/ssr` with an auth callback route | Plain `supabase-js` in the browser, and a static confirm page | Nothing reads user data on the server, so cookies and a server session would add moving parts for no gain |
 | "Reusing the `⋯` pattern" for the account entry | A button that opens a popup | A sign-in form doesn't fit in a row menu. The popup behaviour is its own hook so the theme toggle can use it later |
 | — | Header layout changed: tagline moved below | The new button squeezed it onto two lines |
+
+---
+
+## 8. Connecting the real project: what it turned up
+
+Found while you set up the hosted project on 2026-09-17. None of these could show up against the local copy.
+
+| What happened | Cause | Fix |
+|---|---|---|
+| **Requesting a code returned a 500** | *Custom SMTP* was switched on with the website address (`https://habibit.vercel.app`) in its **Host** field. The auth log said `too many colons in address` | Custom SMTP switched off; Supabase's built-in sender is used for now |
+| **Email templates can't be edited** | The hosted project only allows custom templates once a custom SMTP sender is set up. Local Supabase has no such rule | The app now also accepts the **default** email's link (below). The 6-digit code only appears once custom SMTP and the Habibit template are in place |
+| **A React hydration warning in `npm run dev`** | Present since v0.5: the pre-paint theme script sets `data-theme` on `<html>` before React loads. Development-only, so the production browser tests never saw it | `suppressHydrationWarning` on `<html>`, which covers that element's own attributes only. Checked against your dev server: 1 warning before, none after |
+
+### Supabase's default email link
+
+Its link doesn't carry `?token_hash=`. It goes through Supabase and returns to `/auth/confirm` with the
+session after a `#` (`#access_token=…&refresh_token=…`), or `#error_code=otp_expired` when used or expired.
+The confirm page now handles both kinds of link.
+
+| ID | What it proves | Result |
+|---|---|:---:|
+| V2C-36 | *(unit)* ⭐ A default-email link signs in, exactly once, even under StrictMode | ✅ 🔴 |
+| V2C-26b | *(unit)* A link with neither kind of token says it's incomplete | ✅ |
+| V2C-37 | *(unit)* The tokens are checked with Supabase (`setSession`), never just trusted | ✅ 🔴 |
+| V2C-38 | *(unit)* An expired or used default link gives the friendly "expired" message | ✅ 🔴 |
+| V2C-39 | *(unit)* A link missing either token is refused | ✅ |
+| V2C-40 | *(unit)* A token Supabase rejects is reported, not treated as success | ✅ 🔴 |
+| V2C-41 | ⭐ **Against real (local) Supabase:** the default link signs in from a different browser, and the tokens don't stay in the address bar | ✅ |
+| V2C-42 | Against real Supabase: reusing a default link explains itself | ✅ |
+
+Guards broken on purpose: ignoring the `#` link (V2C-36), using it twice (V2C-36), trusting tokens without
+checking them (V2C-37, 40), and treating "expired" as a generic error (V2C-38). All caught.
+
+**Two honest notes:**
+- **V2C-42 failed its first CI run because of a test mistake.** It looked for the account button while
+  still on the error page, which has no header. The error message itself was correct.
+- **The browser tests for this ran on GitHub CI only.** Your computer had 0.4 GB of memory free with
+  three dev servers running, and test workers were being killed on start. The unit tests ran locally
+  with one worker after the local Supabase was stopped.
+
+### Custom SMTP (the next step for the real project)
+
+Without it: **link only, no code**, and only a few emails an hour, only to members of your Supabase
+organisation. With it: the Habibit email with both the code and the link, sent to anyone.
