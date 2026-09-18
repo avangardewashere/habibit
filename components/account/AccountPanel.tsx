@@ -88,7 +88,14 @@ function SyncLine({ status, pending, onRetry }: { status: SyncStatus; pending: n
   if (status.state === 'error') {
     return (
       <div className="space-y-1">
-        <ErrorText>{status.message}</ErrorText>
+        {/* Offline is an ordinary state of the world, so it is told plainly rather than raised as an error. */}
+        {status.offline ? (
+          <p className="text-sm text-ink" role="status">
+            {status.message}
+          </p>
+        ) : (
+          <ErrorText>{status.message}</ErrorText>
+        )}
         {waiting && (
           <p className="text-sm text-ink-soft" role="status">
             {waiting}

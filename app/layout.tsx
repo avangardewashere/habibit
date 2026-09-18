@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Nunito } from 'next/font/google';
 import './globals.css';
+import { RegisterServiceWorker } from '@/components/offline/ServiceWorker';
 import { THEME_COLOURS, THEME_INIT_SCRIPT } from '@/lib/theme';
 import { HabibitProvider } from '@/store/HabibitProvider';
 import { SyncProvider } from '@/store/SyncProvider';
@@ -62,6 +63,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           full white flash on every load while waiting for React to hydrate.
         */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Makes the app open with no connection. Renders nothing. */}
+        <RegisterServiceWorker />
         <HabibitProvider>
           <SyncProvider>{children}</SyncProvider>
         </HabibitProvider>
