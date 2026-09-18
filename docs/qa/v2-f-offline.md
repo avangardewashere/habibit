@@ -1,6 +1,6 @@
 # Habibit: v2 Block F, offline
 
-**Block:** F of 6 (v2) · **Date:** 2026-09-18 · **Status:** ⏳ waiting on CI, then your sign-off
+**Block:** F of 6 (v2) · **Date:** 2026-09-18 · **Status:** ✅ all green on CI, waiting for your sign-off
 
 > **Habibit now opens with no connection.** Not just "stays open" — you can close the tab on a train,
 > open it again in a tunnel, tick things, and it all reaches your account by itself when the signal
@@ -85,13 +85,16 @@ instead of waiting up to 30 seconds for the next check.
 
 | ID | What it proves | Result |
 |---|---|:---:|
-| V2F-50 | ⭐ **With the network off, a reload still opens the app, with your habits** | ⏳ |
-| V2F-51 | Dark mode still arrives before the app does, offline — no white flash | ⏳ |
-| V2F-52 | ⭐ An edit made offline **reaches the account as soon as the connection returns**, with no reload | ⏳ |
-| V2F-53 | The popup says you're offline, and that nothing is lost | ⏳ |
+| V2F-50 | ⭐ **With the network off, a reload still opens the app, with your habits** | ✅ |
+| V2F-51 | Dark mode still arrives before the app does, offline — no white flash | ✅ |
+| V2F-52 | ⭐ An edit made offline **reaches the account as soon as the connection returns**, with no reload | ✅ |
+| V2F-53 | The popup says you're offline, and that nothing is lost | ✅ |
 
 Each of these waits until the worker has actually kept everything the page needs before switching the
 network off — otherwise the test would be measuring the wrong moment and passing by luck.
+
+CI: **154 / 154 browser test runs** (77 tests, as an Android phone and as desktop Chrome), 251 unit tests
+and 30 database tests, all green. Every Block A–E test still passes.
 
 ---
 
