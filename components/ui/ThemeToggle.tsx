@@ -2,8 +2,7 @@
 
 import { Monitor, Moon, Sun } from 'lucide-react';
 import type { ComponentType } from 'react';
-import { applyTheme, type ThemePreference } from '@/lib/theme';
-import { useIsomorphicLayoutEffect } from '@/lib/useIsomorphicLayoutEffect';
+import type { ThemePreference } from '@/lib/theme';
 import { setThemePreference, useThemePreference } from '@/lib/useTheme';
 
 const OPTIONS: { value: ThemePreference; label: string; Icon: ComponentType<{ className?: string; strokeWidth?: number }> }[] = [
@@ -13,17 +12,8 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: ComponentType<{ cl
 ];
 
 export function ThemeToggle() {
+  // Only draws the buttons. Keeping the page in step on load is ThemeEffect's job.
   const preference = useThemePreference();
-
-  /*
-   * Syncs the DOM with the stored preference on mount, so the status-bar metas
-   * match what the inline script already painted. No dependency on the OS here:
-   * while the preference is `system` the browser tracks the device itself via
-   * the media-scoped metas, which is one less event to miss.
-   */
-  useIsomorphicLayoutEffect(() => {
-    applyTheme(preference);
-  }, [preference]);
 
   return (
     <div
