@@ -67,7 +67,6 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         {/* Makes the app open with no connection. Renders nothing. */}
         <RegisterServiceWorker />
         {/* Keeps the status bar in step with the stored theme. Renders nothing. */}
-        <ThemeEffect />
         <HabibitProvider>
           <SyncProvider>{children}</SyncProvider>
         </HabibitProvider>
