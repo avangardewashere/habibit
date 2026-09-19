@@ -44,38 +44,49 @@ export function saveThemePreference(preference: ThemePreference): void {
 /**
  * Keeps the status-bar colour honest.
  *
- * The layout ships two media-scoped `theme-color` metas. Those are exactly right
- * while the preference is `system`: the browser re-evaluates them itself when
- * the OS flips, with no JavaScript involved and no event to miss.
+ * The layout ships two media-scoped `theme-color` metas: cream for a light
+ * device, plum for a dark one. Those are exactly right while the preference is
+ * `system`: the browser re-evaluates them itself when the OS flips, with no
+ * JavaScript involved and no event to miss.
  *
  * They are wrong the moment the user overrides the device — forcing dark on a
  * light phone would leave a cream status bar above a plum app — so an explicit
- * choice replaces them with a single unconditional meta.
+ * choice gives **both** metas that theme's colour. Whichever one the device
+ * matches, the bar is the chosen colour. Switching back to `system` gives each
+ * its own colour again. (An early version pinned one colour for good, which
+ * quietly broke OS tracking.)
  *
- * Switching back to `system` restores the pair. An earlier version replaced them
- * unconditionally, which quietly broke OS tracking: the app followed the device
- * but the status bar kept whatever colour it had when you last tapped.
+ * The metas are edited in place, never removed or replaced. React rendered
+ * them and still owns them: v3 Block A found that replacing them made React
+ * crash with "removeChild of null" on the next page change, which broke the
+ * sign-in page's hop back to the app.
  */
+const MEDIA: Record<ResolvedTheme, string> = {
+  light: '(prefers-color-scheme: light)',
+  dark: '(prefers-color-scheme: dark)',
+};
+
 function setThemeColourMeta(preference: ThemePreference): void {
-  document.head.querySelectorAll('meta[name="theme-color"]').forEach((el) => el.remove());
+  for (const scheme of ['light', 'dark'] as const) {
+    const colour = THEME_COLOURS[preference === 'system' ? scheme : preference];
+    // Every match, not just the first: after a page change Next can leave two
+    // copies of each in the head (see ThemeEffect).
+    const metas = document.head.querySelectorAll<HTMLMetaElement>(
+      `meta[name="theme-color"][media="${MEDIA[scheme]}"]`,
+    );
+    metas.forEach((meta) => meta.setAttribute('content', colour));
 
-  const add = (colour: string, media?: string) => {
-    const meta = document.createElement('meta');
-    // setAttribute rather than the IDL properties: `media` on <meta> is a recent
-    // addition and is not reflected as a property everywhere.
-    meta.setAttribute('name', 'theme-color');
-    meta.setAttribute('content', colour);
-    if (media) meta.setAttribute('media', media);
-    document.head.appendChild(meta);
-  };
-
-  if (preference === 'system') {
-    add(THEME_COLOURS.light, '(prefers-color-scheme: light)');
-    add(THEME_COLOURS.dark, '(prefers-color-scheme: dark)');
-    return;
+    if (metas.length === 0) {
+      // Only if the layout's own meta is missing, which the app never does.
+      // setAttribute rather than the IDL properties: `media` on <meta> is a
+      // recent addition and is not reflected as a property everywhere.
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      meta.setAttribute('media', MEDIA[scheme]);
+      meta.setAttribute('content', colour);
+      document.head.appendChild(meta);
+    }
   }
-
-  add(THEME_COLOURS[preference]);
 }
 
 /** Writes the preference to the DOM. `system` removes the attribute entirely. */

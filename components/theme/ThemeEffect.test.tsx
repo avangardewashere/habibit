@@ -46,7 +46,11 @@ describe('ThemeEffect', () => {
 
     render(<ThemeEffect />);
 
-    expect(metas()).toEqual([{ content: THEME_COLOURS.dark, media: null }]);
+    // Both metas, so the bar is plum whichever way the phone itself is set.
+    expect(metas()).toEqual([
+      { content: THEME_COLOURS.dark, media: '(prefers-color-scheme: light)' },
+      { content: THEME_COLOURS.dark, media: '(prefers-color-scheme: dark)' },
+    ]);
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
@@ -59,6 +63,22 @@ describe('ThemeEffect', () => {
       { content: THEME_COLOURS.light, media: '(prefers-color-scheme: light)' },
       { content: THEME_COLOURS.dark, media: '(prefers-color-scheme: dark)' },
     ]);
+  });
+
+  it('V3A-15 · ⭐ recolours metas that appear later, as Next adds on a page change', async () => {
+    localStorage.setItem(THEME_KEY, 'dark');
+    const ThemeEffect = await loadThemeEffect();
+    render(<ThemeEffect />);
+
+    // Next renders a fresh pair with the default colours when the page changes.
+    document.head.insertAdjacentHTML(
+      'beforeend',
+      `<meta name="theme-color" content="${THEME_COLOURS.light}" media="(prefers-color-scheme: light)">`,
+    );
+    // The watcher reports once the current task's changes are done.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(metas().map((m) => m.content)).toEqual(Array(3).fill(THEME_COLOURS.dark));
   });
 
   it('V3A-03 · draws nothing', async () => {

@@ -97,7 +97,10 @@ describe('ThemeMenu', () => {
     const ThemeMenu = await loadThemeMenu();
     render(<ThemeMenu />);
 
-    expect(metas()).toHaveLength(2);
+    expect(metas()).toEqual([
+      { content: THEME_COLOURS.light, media: '(prefers-color-scheme: light)' },
+      { content: THEME_COLOURS.dark, media: '(prefers-color-scheme: dark)' },
+    ]);
     expect(document.documentElement.dataset.theme).toBeUndefined();
   });
 });

@@ -9,6 +9,14 @@ import { openApp, THEME_KEY } from './helpers';
 const CREAM = 'rgb(255, 251, 247)'; // #FFFBF7
 const PLUM = 'rgb(36, 23, 38)'; // #241726
 
+const LIGHT_MEDIA = '(prefers-color-scheme: light)';
+const DARK_MEDIA = '(prefers-color-scheme: dark)';
+/** A forced theme gives both metas its colour: the bar matches whichever way the device is set. */
+const pinned = (colour: string) => [
+  { content: colour, media: LIGHT_MEDIA },
+  { content: colour, media: DARK_MEDIA },
+];
+
 async function themeMetas(page: Page) {
   return page.evaluate(() =>
     [...document.head.querySelectorAll('meta[name="theme-color"]')].map((m) => ({
@@ -100,14 +108,14 @@ test.describe('the status bar colour', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await openApp(page);
     await choose(page, 'Light theme');
-    expect(await themeMetas(page)).toEqual([{ content: '#FFFBF7', media: null }]);
+    expect(await themeMetas(page)).toEqual(pinned('#FFFBF7'));
   });
 
   test('V2A-34 · forcing dark on a light device pins one plum colour', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });
     await openApp(page);
     await choose(page, 'Dark theme');
-    expect(await themeMetas(page)).toEqual([{ content: '#241726', media: null }]);
+    expect(await themeMetas(page)).toEqual(pinned('#241726'));
   });
 
   test('V3A-10 · ⭐ a stored dark theme pins the status bar on load, with the menu never opened', async ({ page }) => {
@@ -122,7 +130,7 @@ test.describe('the status bar colour', () => {
     await openApp(page);
 
     await expect(themeButton(page)).toHaveAttribute('aria-expanded', 'false');
-    await expect.poll(() => themeMetas(page)).toEqual([{ content: '#241726', media: null }]);
+    await expect.poll(() => themeMetas(page)).toEqual(pinned('#241726'));
   });
 
   test('V2A-35 · ⭐ switching back to "Match device" restores the pair', async ({ page }) => {
@@ -130,6 +138,32 @@ test.describe('the status bar colour', () => {
     await openApp(page);
     await choose(page, 'Dark theme');
     await choose(page, 'Match device theme');
-    expect(await themeMetas(page)).toHaveLength(2);
+    expect(await themeMetas(page)).toEqual([
+      { content: '#FFFBF7', media: LIGHT_MEDIA },
+      { content: '#241726', media: DARK_MEDIA },
+    ]);
+  });
+
+  test('V3A-13 · ⭐ with a theme forced, leaving the sign-in page for the app still works', async ({ page }) => {
+    /*
+     * Found by CI in this block. Replacing the metas (instead of editing them)
+     * made React crash on its next change to the page head, so the hop from the
+     * sign-in link's landing page back to the app died with "removeChild of null".
+     * The link-less landing page takes the same hop, without needing an account.
+     */
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    await page.addInitScript((key) => localStorage.setItem(key, 'dark'), THEME_KEY);
+
+    await page.goto('/auth/confirm');
+    await page.getByRole('link', { name: 'Back to Habibit' }).click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('textbox', { name: 'Add a habit...' })).toBeVisible();
+    await expect(page).toHaveTitle(/Little habits/);
+    expect(errors).toEqual([]);
+    // And the status bar is still plum after the hop: every theme-color meta, including
+    // any fresh ones Next rendered for the new page.
+    await expect.poll(async () => (await themeMetas(page)).every((m) => m.content === '#241726')).toBe(true);
   });
 });
