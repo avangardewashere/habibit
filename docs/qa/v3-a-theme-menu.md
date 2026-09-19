@@ -1,12 +1,12 @@
 # Habibit: v3 Block A, theme menu
 
-**Block:** A of 7 (v3) · **Date:** 2026-09-19 → 20 · **Status:** ⏳ a real bug was found by CI and fixed; re-running CI
+**Block:** A of 7 (v3) · **Date:** 2026-09-19 → 20 · **Status:** ✅ all green on CI, waiting for your sign-off
 
 > **The three theme buttons are now one.** The header shows a single button with the current theme's
 > icon; tapping it opens Light, Dark and Match device. Nothing about how themes behave has changed,
 > and the tests below are how that's known rather than hoped.
 
-**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken · ⏳ waiting on CI
+**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken
 
 ---
 
@@ -96,10 +96,10 @@ menu never opened, the status bar was still cream. The console had no errors.
 | V3A-07 | Picking applies and stores it, closes the menu, returns focus | same | ✅ 🔴 |
 | V3A-08 | Escape closes and returns focus; a tap outside closes | same | ✅ |
 | V3A-09 | The menu only draws: loading it changes nothing on the page | same | ✅ 🔴 |
-| V3A-10 | ⭐ In a real browser: stored dark on a light phone, status bar plum on load, menu never opened | `e2e/theme.spec.ts` | ⏳ 🔴 |
-| V3A-11 | At 375px the open menu fits on screen with no sideways scroll | `e2e/layout.spec.ts` | ⏳ |
+| V3A-10 | ⭐ In a real browser: stored dark on a light phone, status bar plum on load, menu never opened | `e2e/theme.spec.ts` | ✅ 🔴 |
+| V3A-11 | At 375px the open menu fits on screen with no sideways scroll | `e2e/layout.spec.ts` | ✅ |
 | V3A-12 | ⭐ `applyTheme` edits the page's own tags and never swaps them out (the sign-in crash) | `lib/theme.dom.test.ts` | ✅ 🔴 |
-| V3A-13 | ⭐ In a real browser: with Dark forced, leaving the sign-in page for the app works, with no errors and the status bar still plum | `e2e/theme.spec.ts` | ⏳ |
+| V3A-13 | ⭐ In a real browser: with Dark forced, leaving the sign-in page for the app works, with no errors and the status bar still plum | `e2e/theme.spec.ts` | ✅ |
 | V3A-14 | Every copy of a tag is recoloured when the head holds two of each | `lib/theme.dom.test.ts` | ✅ 🔴 |
 | V3A-15 | ⭐ Tags that appear later, as Next adds on a page change, are recoloured | `components/theme/ThemeEffect.test.tsx` | ✅ 🔴 |
 
@@ -110,11 +110,11 @@ first. What they check is unchanged:
 
 | ID | Change | Result |
 |---|---|---|
-| V2A-30…35 | `choose()` opens the menu, picks, and checks the menu closed and the button names the choice | ⏳ |
-| V2A-33, 34, 35 | A forced theme is now checked as *both* tags showing its colour, instead of one pinned tag | ⏳ |
+| V2A-30…35 | `choose()` opens the menu, picks, and checks the menu closed and the button names the choice | ✅ |
+| V2A-33, 34, 35 | A forced theme is now checked as *both* tags showing its colour, instead of one pinned tag | ✅ |
 | (unit) | The `applyTheme` tests in `lib/theme.dom.test.ts` rewritten the same way | ✅ |
-| V2A-37 | Tap targets now include the theme button, then open the menu and measure all three options | ⏳ |
-| V2A-39 | The clean-console session picks Dark through the menu | ⏳ |
+| V2A-37 | Tap targets now include the theme button, then open the menu and measure all three options | ✅ |
+| V2A-39 | The clean-console session picks Dark through the menu | ✅ |
 
 ---
 
@@ -147,9 +147,9 @@ and the real code then passed twice in a row. I couldn't reproduce the extra fai
 
 | Suite | Count | Result |
 |---|---|---|
-| Unit (Vitest) | 262 | ✅ locally |
-| Browser (Playwright), 80 tests × 2 devices | 160 runs | ⏳ |
-| Database | 30 | ⏳ |
+| Unit (Vitest) | 262 | ✅ |
+| Browser (Playwright), 80 tests × 2 devices | 160 runs | ✅ CI run 35454706836 |
+| Database | 30 | ✅ |
 
 ---
 
