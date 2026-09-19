@@ -163,6 +163,16 @@ switches it back on, and checks everything reached the server.
 
 **Optional check:** airplane mode on your installed Android app.
 
+**Read first:** Next 16 ships an `experimental.useOffline` flag and a `useOffline()` hook, but they retry
+*framework* requests — navigation, prefetch, Server Actions. Habibit makes none of those after load; it
+talks to Supabase from the browser, which that flag never sees. It stays off. The app watches the browser's
+own `online`/`offline` events and its own failed syncs instead.
+
+**Decided in Block F:** a hand-written service worker rather than Serwist — network-first for the page,
+cache-first for hash-named assets, this origin only, so nothing about your account is ever cached; offline
+reuses Block E's dot plus wording in the account popup, with no banner; a new deploy takes effect silently
+on the next open. Report: `docs/qa/v2-f-offline.md`.
+
 ---
 
 ## Not in v2

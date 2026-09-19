@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import { signOut as signOutOfAccount } from '@/lib/auth/actions';
 import { useAccount } from '@/lib/auth/session';
+import { isOnline } from '@/lib/offline/connection';
 import { getSupabase } from '@/lib/supabase/client';
 import { supabaseRemote, type RemoteStore } from '@/lib/sync/remote';
 import {
@@ -23,7 +24,8 @@ export type SyncStatus =
   | { state: 'off' }
   | { state: 'syncing' }
   | { state: 'synced'; at: Date }
-  | { state: 'error'; message: string };
+  /** `offline` means the browser has no connection at all: expected, not a fault. */
+  | { state: 'error'; message: string; offline: boolean };
 
 type SyncContextValue = {
   status: SyncStatus;
@@ -55,7 +57,11 @@ export const POLL_MS = 30_000;
 /** Edits in quick succession (ticking several habits) go up together. */
 export const EDIT_DEBOUNCE_MS = 1_500;
 
-const OFFLINE_MESSAGE = 'Couldn’t reach your account. Your habits are safe on this device and will sync when it’s back.';
+/** Shown when the browser has no connection: nothing is wrong, and nothing is lost. */
+export const OFFLINE_MESSAGE = 'You’re offline. Your habits are safe on this device and will sync when you’re back.';
+/** Shown when there is a connection but the account couldn’t be reached. */
+export const UNREACHABLE_MESSAGE =
+  'Couldn’t reach your account. Your habits are safe on this device and will sync when it’s back.';
 
 function updatedAtOf(state: HabibitState, key: OutboxKey): string | undefined {
   const c = collectChanges(state, [key]);
@@ -148,7 +154,8 @@ export function SyncProvider({
         })
         .catch(() => {
           if (generation.current !== startedIn) return false;
-          setStatus({ state: 'error', message: OFFLINE_MESSAGE });
+          const offline = !isOnline();
+          setStatus({ state: 'error', message: offline ? OFFLINE_MESSAGE : UNREACHABLE_MESSAGE, offline });
           return false;
         })
         .finally(() => {
@@ -207,6 +214,16 @@ export function SyncProvider({
     };
   }, [signedIn, syncNow]);
 
+  // Coming back from offline shouldn't wait up to 30 seconds to be noticed.
+  useEffect(() => {
+    if (!signedIn) return;
+    function onOnline() {
+      void syncNow();
+    }
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [signedIn, syncNow]);
+
   const signOutAndClear = useCallback(
     async ({ force = false }: { force?: boolean } = {}): Promise<boolean> => {
       if (!force) {
@@ -218,7 +235,7 @@ export function SyncProvider({
       generation.current += 1;
       const result = await signOutOfAccount();
       if (!result.ok) {
-        setStatus({ state: 'error', message: result.message });
+        setStatus({ state: 'error', message: result.message, offline: false });
         return false;
       }
       outbox.current.clear();

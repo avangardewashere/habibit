@@ -26,9 +26,21 @@ export function AccountMenu() {
 
   // Your choice: nothing when all is synced; a quiet dot while edits wait to go up;
   // a warning dot while syncing is failing. The same news goes in the label for screen readers.
-  const problem = signedIn && status.state === 'error';
-  const waiting = signedIn && !problem && pending > 0;
-  const syncNote = problem ? '. Sync problem' : waiting ? `. ${pending} change${pending === 1 ? '' : 's'} waiting to sync` : '';
+  //
+  // Being offline is not a fault — nothing is lost and it fixes itself — so it
+  // gets the quiet dot, not the warning one.
+  const failure = signedIn && status.state === 'error' ? status : null;
+  const offline = failure?.offline === true;
+  const problem = failure !== null && !offline;
+  const waiting = failure === null && signedIn && pending > 0;
+  const count = `${pending} change${pending === 1 ? '' : 's'} waiting to sync`;
+  const syncNote = problem
+    ? '. Sync problem'
+    : offline
+      ? `. Offline${pending > 0 ? `. ${count}` : ''}`
+      : waiting
+        ? `. ${count}`
+        : '';
 
   return (
     /*
@@ -51,10 +63,10 @@ export function AccountMenu() {
         ].join(' ')}
       >
         <Icon className="h-5 w-5" strokeWidth={2.5} />
-        {(waiting || problem) && (
+        {(waiting || offline || problem) && (
           <span
             aria-hidden
-            data-sync-dot={problem ? 'problem' : 'waiting'}
+            data-sync-dot={problem ? 'problem' : offline ? 'offline' : 'waiting'}
             className={[
               // A ring in the page colour separates the dot from the coral button in both themes.
               'absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full ring-2 ring-surface',
