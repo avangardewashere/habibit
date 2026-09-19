@@ -46,7 +46,7 @@ export function AccountMenu() {
     /*
      * Not `relative`: the popup is positioned against the whole header actions
      * group (see Header), so it lines up with the right edge of the screen
-     * content rather than with this button, which has the theme toggle beside it.
+     * content rather than with this button, which has the theme button beside it.
      */
     <div ref={wrapperRef}>
       <button
