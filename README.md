@@ -42,8 +42,8 @@ Then open http://localhost:3000.
 | `npm run check` | Everything: typecheck, lint, unit, database and browser tests. Run this before pushing |
 | `npm run db:start` / `db:stop` | Start or stop the local Supabase in Docker (needed by `test:db` and `e2e`) |
 | `npm run test:db` | Database tests: security (can one user reach another's data?) and sync (30) |
-| `npm test` | Unit tests (251) |
-| `npm run e2e` | Browser tests (77 tests, as an Android phone and as desktop Chrome) against a production build |
+| `npm test` | Unit tests (259) |
+| `npm run e2e` | Browser tests (79 tests, as an Android phone and as desktop Chrome) against a production build |
 | `npm run e2e:report` | Open the last browser-test report, with a step-by-step trace of any failure |
 | `npm run typecheck` | Generate Next route types, then TypeScript with no emit |
 | `npm run lint` | ESLint |

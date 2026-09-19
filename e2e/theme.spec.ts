@@ -2,7 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { openApp, THEME_KEY } from './helpers';
 
 /*
- * Ported from docs/qa/v0.5-b-theming.md.
+ * Ported from docs/qa/v0.5-b-theming.md. Since v3 Block A the three choices sit
+ * in a menu behind one header button.
  */
 
 const CREAM = 'rgb(255, 251, 247)'; // #FFFBF7
@@ -21,9 +22,18 @@ async function pageBackground(page: Page) {
   return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 }
 
-async function choose(page: Page, label: 'Light theme' | 'Dark theme' | 'Match device theme') {
+const SHORT = { 'Light theme': 'Light', 'Dark theme': 'Dark', 'Match device theme': 'Match device' } as const;
+
+function themeButton(page: Page) {
+  return page.getByRole('button', { name: /^Theme:/ });
+}
+
+async function choose(page: Page, label: keyof typeof SHORT) {
+  await themeButton(page).click();
   await page.getByRole('radio', { name: label }).click();
-  await expect(page.getByRole('radio', { name: label })).toBeChecked();
+  // Picking closes the menu, and the button then names the new choice.
+  await expect(page.getByRole('radio')).toHaveCount(0);
+  await expect(themeButton(page)).toHaveAccessibleName(`Theme: ${SHORT[label]}`);
 }
 
 test('V2A-29 · ⭐ a stored dark theme is applied before any app markup exists (no white flash)', async ({ page }) => {
@@ -57,7 +67,7 @@ test('V2A-30 · light and dark apply, and the choice survives a reload', async (
   await choose(page, 'Dark theme');
   await expect.poll(() => pageBackground(page)).toBe(PLUM);
   await page.reload();
-  await expect(page.getByRole('radio', { name: 'Dark theme' })).toBeChecked();
+  await expect(themeButton(page)).toHaveAccessibleName('Theme: Dark');
   await expect.poll(() => pageBackground(page)).toBe(PLUM);
 
   await choose(page, 'Light theme');
@@ -98,6 +108,21 @@ test.describe('the status bar colour', () => {
     await openApp(page);
     await choose(page, 'Dark theme');
     expect(await themeMetas(page)).toEqual([{ content: '#241726', media: null }]);
+  });
+
+  test('V3A-10 · ⭐ a stored dark theme pins the status bar on load, with the menu never opened', async ({ page }) => {
+    /*
+     * The catch from docs/backlog.md. The load-time sync used to live inside the
+     * theme buttons; inside a menu that only exists while open it would never run,
+     * leaving a cream status bar above a plum app. The inline script can't catch
+     * this: it paints the colours but leaves the metas alone.
+     */
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.addInitScript((key) => localStorage.setItem(key, 'dark'), THEME_KEY);
+    await openApp(page);
+
+    await expect(themeButton(page)).toHaveAttribute('aria-expanded', 'false');
+    await expect.poll(() => themeMetas(page)).toEqual([{ content: '#241726', media: null }]);
   });
 
   test('V2A-35 · ⭐ switching back to "Match device" restores the pair', async ({ page }) => {

@@ -36,6 +36,16 @@ test.describe('at the smallest supported phone width', () => {
     expect(del.x + del.width).toBeLessThanOrEqual(card.x + card.width);
   });
 
+  test('V3A-11 · the open theme menu fits on screen, with no sideways scroll', async ({ page }) => {
+    await openApp(page);
+    await page.getByRole('button', { name: /^Theme:/ }).click();
+
+    const menu = await box(page.getByRole('radiogroup', { name: 'Colour theme' }));
+    expect(menu.x).toBeGreaterThanOrEqual(0);
+    expect(menu.x + menu.width).toBeLessThanOrEqual(375);
+    expect(await hasSidewaysScroll(page)).toBe(false);
+  });
+
   test('V2A-37 · every tap target is at least 44×44', async ({ page }) => {
     await openApp(page);
     await addHabit(page, 'Drink water');
@@ -43,15 +53,17 @@ test.describe('at the smallest supported phone width', () => {
     const targets = [
       // Only in builds with accounts switched on, which the browser tests always are.
       ...(await page.getByRole('button', { name: /^Account:/ }).all()),
-      page.getByRole('radio', { name: 'Light theme' }),
-      page.getByRole('radio', { name: 'Dark theme' }),
-      page.getByRole('radio', { name: 'Match device theme' }),
+      page.getByRole('button', { name: /^Theme:/ }),
       moreActions(page, 'Drink water'),
       page.getByRole('button', { name: 'Add habit' }),
       page.getByRole('button', { name: 'Add task' }),
       ...(await page.getByRole('button', { name: /^Drink water — / }).all()),
     ];
-    expect(targets.length).toBeGreaterThanOrEqual(13);
+
+    // The theme choices only exist while their menu is open.
+    await page.getByRole('button', { name: /^Theme:/ }).click();
+    targets.push(...(await page.getByRole('radio').all()));
+    expect(targets.length).toBeGreaterThanOrEqual(14);
 
     for (const target of targets) {
       const b = await box(target);
@@ -90,6 +102,7 @@ test('V2A-39 · the console stays clean through a normal session', async ({ page
   await addHabit(page, 'Drink water');
   await addTask(page, 'Call mum');
   await page.getByRole('checkbox', { name: 'Drink water', exact: true }).click();
+  await page.getByRole('button', { name: /^Theme:/ }).click();
   await page.getByRole('radio', { name: 'Dark theme' }).click();
   await page.reload();
   await expect(page.getByRole('checkbox', { name: 'Drink water', exact: true })).toBeChecked();
