@@ -2,6 +2,15 @@ import { defineConfig, devices } from '@playwright/test';
 import { findLocalSupabase, type LocalSupabase } from './test-support/local-supabase';
 
 const PORT = 3100;
+
+/*
+ * A throwaway VAPID public key, so the reminder settings exist in the test
+ * build. Its private half was generated with it and thrown away: nothing here
+ * can send a push, and nothing needs to. The real pair lives in your Supabase
+ * secrets and never in this repo.
+ */
+const TEST_VAPID_PUBLIC_KEY =
+  'BGbtY9g5DRcNe-on0oWjT2JO830ymqnyT9lyNyotGmqrK7II1CcIUy0osjYQZ5BEhoe_gk5o94VQugSiv847gSU';
 const isCI = Boolean(process.env.CI);
 
 /*
@@ -61,11 +70,14 @@ export default defineConfig({
     // A local run reuses a server you already started; CI always builds fresh.
     reuseExistingServer: !isCI,
     timeout: 240_000,
-    env: supabase
-      ? {
-          NEXT_PUBLIC_SUPABASE_URL: supabase.url,
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: supabase.publishableKey,
-        }
-      : {},
+    env: {
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: TEST_VAPID_PUBLIC_KEY,
+      ...(supabase
+        ? {
+            NEXT_PUBLIC_SUPABASE_URL: supabase.url,
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: supabase.publishableKey,
+          }
+        : {}),
+    },
   },
 });

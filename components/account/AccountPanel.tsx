@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 import { looksLikeEmail, requestSignIn, verifyCode } from '@/lib/auth/actions';
 import type { AccountState } from '@/lib/auth/session';
 import { useSync, type SyncStatus } from '@/store/SyncProvider';
+import { ReminderSettings } from './ReminderSettings';
 
 const button =
   'min-h-11 w-full touch-manipulation rounded-full bg-accent px-4 text-sm font-extrabold text-on-accent transition active:scale-[0.98] disabled:bg-line disabled:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
@@ -43,6 +44,8 @@ function SignedIn({ email }: { email: string }) {
       </div>
 
       <SyncLine status={status} pending={pending} onRetry={() => void syncNow()} />
+
+      {step === 'idle' && <ReminderSettings />}
 
       {step === 'idle' && (
         <button type="button" onClick={() => setStep('confirm')} className={button}>
