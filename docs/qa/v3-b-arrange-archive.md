@@ -96,6 +96,7 @@ after two moves, only the moved habits' keys had changed.
 | V3B-18 | The display order: keys first, then habits with none, oldest first | same | ✅ 🔴 |
 | V3B-19 | ⭐ Data saved before v3 loads with no position, and the storage version stays 2 | `lib/storage.test.ts` | ✅ 🔴 |
 | V3B-20, 21 | A position goes to the database and back; an older build's row reads as "no position" | `lib/sync/sync.test.ts` | ✅ 🔴 |
+| V3B-22 | ⭐ The same habit with its fields in a different order counts as unchanged (found by CI) | `lib/sync/merge.test.ts` | ✅ 🔴 |
 | V3B-40 | ⭐ A position is stored in the real database and reaches another device | `supabase/tests/sync.test.ts` | ⏳ |
 | V3B-41 | An upload from an older build leaves the stored position alone | same | ⏳ |
 | V3B-42 | A habit an older build created reads back as "no position" | same | ⏳ |
@@ -123,11 +124,28 @@ Each guard was broken on purpose, the tests run, and the file restored before th
 | New habits never get a key | V3B-10, V3B-11, V3B-17 |
 | A malformed stored position is kept instead of being read as "none" | V3B-19's neighbour |
 | The position column is never written to the database | V3B-20 |
+| "Has this changed?" compares records as text, field order and all | V3B-22 |
 | Unarchiving a habit that isn't archived rewrites the row anyway | V3B-16 |
 | The order keys: no shared-prefix step, wrong midpoint, trailing zeros kept, "between two neighbouring digits" case | V3B-01…08 |
 
 **Not mutation-checked:** the browser and database tests, which run only on CI. Same limit as every
 block since v2 D.
+
+---
+
+## ⚠️ What CI found
+
+The first CI run failed one database test: **V2D-42, "syncing an unchanged device again uploads
+nothing"**. An unchanged device uploaded one habit on every sync, for good.
+
+The cause was older than this block. Sync decides whether a record has changed by comparing the two
+copies **as text**, and that depends on the order the fields happen to sit in. A habit built by the
+app and the same habit read back from the database can hold the same fields in a different order.
+Nothing had exposed it until `position` was added.
+
+Two records that differ only in field order are now treated as the same, and the same fix applies
+to the tie-break when two devices save at the very same instant — which has to be decided
+identically on both, whatever order each holds its fields in (V3B-22).
 
 ---
 
@@ -147,7 +165,7 @@ block since v2 D.
 
 | Suite | Count | Result |
 |---|---|---|
-| Unit (Vitest) | 286 | ✅ |
+| Unit (Vitest) | 287 | ✅ |
 | Browser (Playwright), 88 tests × 2 devices | 176 runs | ⏳ |
 | Database | 34 | ⏳ |
 

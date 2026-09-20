@@ -15,6 +15,20 @@ import type { Completion, CompletionKey, Habit, HabibitState, Task } from '@/lib
 
 type Versioned = { updatedAt: string; deletedAt?: string | null };
 
+/**
+ * A record as text, with its fields in a fixed order.
+ *
+ * Plain `JSON.stringify` writes fields in whatever order the object happens to
+ * have them, so the same habit built two different ways — by the reducer, or
+ * read back from the database — could compare as different. That would upload
+ * an unchanged record on every single sync, forever (found by CI in v3 Block B,
+ * when `position` was added).
+ */
+function stable(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
+  return JSON.stringify(value, Object.keys(value as object).sort());
+}
+
 /** Which of two versions of the same record to keep. */
 function newer<T extends Versioned>(a: T, b: T): T {
   const at = Date.parse(a.updatedAt);
@@ -27,7 +41,9 @@ function newer<T extends Versioned>(a: T, b: T): T {
   const aDeleted = Boolean(a.deletedAt);
   const bDeleted = Boolean(b.deletedAt);
   if (aDeleted !== bDeleted) return aDeleted ? a : b;
-  return JSON.stringify(a) >= JSON.stringify(b) ? a : b;
+  // Both devices have to pick the same one, so the comparison can't depend on
+  // the order either device happens to hold the fields in.
+  return stable(a) >= stable(b) ? a : b;
 }
 
 function mergeById<T extends Versioned & { id: string; createdAt: string }>(local: T[], remote: T[]): T[] {
@@ -64,7 +80,7 @@ export type Changes = {
 };
 
 function same(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+  return stable(a) === stable(b);
 }
 
 export function changesToPush(merged: HabibitState, remote: HabibitState): Changes {

@@ -162,6 +162,23 @@ describe('what needs uploading', () => {
     expect(hasChanges(changesToPush(same, structuredClone(same)))).toBe(false);
   });
 
+  it('V3B-22 · ⭐ the same habit with its fields in a different order counts as unchanged', () => {
+    /*
+     * Found by CI in v3 Block B. "Has this changed?" used to compare the two
+     * copies as text, which depends on the order the fields sit in. A habit the
+     * reducer built and the same habit read back from the database can hold the
+     * same fields in a different order — and every sync would upload it again,
+     * forever.
+     */
+    const mine = habit('h', 'Drink water', 1, { position: 'V' });
+    const reordered = Object.fromEntries(
+      Object.entries(mine).reverse(),
+    ) as unknown as typeof mine;
+
+    expect(Object.keys(reordered)).not.toEqual(Object.keys(mine));
+    expect(hasChanges(changesToPush(state({ habits: [mine] }), state({ habits: [reordered] })))).toBe(false);
+  });
+
   it('never uploads a completion for a habit that does not exist, which the database would reject', () => {
     const merged = state({ completions: { 'ghost::2026-09-17': { done: true, updatedAt: T(1) } } });
     expect(changesToPush(merged, state()).completions).toEqual([]);
