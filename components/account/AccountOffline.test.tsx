@@ -15,7 +15,12 @@ const UNREACHABLE: Failure = { state: 'error', message: 'Couldn’t reach your a
 
 const sync = vi.hoisted(() => ({ status: { state: 'off' } as SyncStatus, pending: 0 }));
 vi.mock('@/store/SyncProvider', () => ({
-  useSync: () => ({ ...sync, syncNow: async () => false, signOutAndClear: async () => false }),
+  useSync: () => ({
+    ...sync,
+    syncNow: async () => false,
+    signOutAndClear: async () => false,
+    deleteAccountKeepingDevice: async () => 'Accounts are not available right now.',
+  }),
 }));
 vi.mock('@/lib/auth/session', () => ({ useAccount: () => ({ status: 'signed-in', email: 'me@example.com' }) }));
 /*

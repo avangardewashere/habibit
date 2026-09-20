@@ -23,10 +23,11 @@ export function AccountPanel({ account }: { account: AccountState }) {
 }
 
 function SignedIn({ email }: { email: string }) {
-  const { status, pending, syncNow, signOutAndClear } = useSync();
+  const { status, pending, syncNow, signOutAndClear, deleteAccountKeepingDevice } = useSync();
   // Signing out empties the device, so it takes a confirming second tap, like deleting.
-  const [step, setStep] = useState<'idle' | 'confirm' | 'unsynced'>('idle');
+  const [step, setStep] = useState<'idle' | 'confirm' | 'unsynced' | 'delete'>('idle');
   const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
 
   async function onSignOut(force: boolean) {
     setBusy(true);
@@ -34,6 +35,15 @@ function SignedIn({ email }: { email: string }) {
     setBusy(false);
     // Not done without force means the account couldn't be reached: say so before losing anything.
     if (!done && !force) setStep('unsynced');
+  }
+
+  async function onDelete() {
+    setBusy(true);
+    setProblem(null);
+    const failed = await deleteAccountKeepingDevice();
+    setBusy(false);
+    // On success this panel becomes the signed-out one by itself, via the session store.
+    if (failed) setProblem(failed);
   }
 
   return (
@@ -48,9 +58,21 @@ function SignedIn({ email }: { email: string }) {
       {step === 'idle' && <ReminderSettings />}
 
       {step === 'idle' && (
-        <button type="button" onClick={() => setStep('confirm')} className={button}>
-          Sign out
-        </button>
+        <>
+          <button type="button" onClick={() => setStep('confirm')} className={button}>
+            Sign out
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setProblem(null);
+              setStep('delete');
+            }}
+            className={`${quietButton} block`}
+          >
+            Delete account
+          </button>
+        </>
       )}
 
       {step === 'confirm' && (
@@ -63,6 +85,39 @@ function SignedIn({ email }: { email: string }) {
           </button>
           <button type="button" onClick={() => setStep('idle')} disabled={busy} className={quietButton}>
             Cancel
+          </button>
+        </div>
+      )}
+
+      {step === 'delete' && (
+        <div className="space-y-3">
+          {/*
+            Said as two plain sentences rather than one warning, because the
+            second one is the part people are actually afraid of: the habits on
+            this phone are not going anywhere.
+          */}
+          <p className="text-sm text-ink">
+            Deleting your account removes it and everything synced to it — your habits, your
+            reminders, and every device signed in to it. It can’t be undone.
+          </p>
+          <p className="text-sm text-ink">
+            <strong>Your habits stay on this device.</strong> The app keeps working, signed out,
+            exactly as it did before you made an account.
+          </p>
+          {problem && <ErrorText>{problem}</ErrorText>}
+          <button type="button" onClick={() => void onDelete()} disabled={busy} className={button}>
+            {busy ? 'Deleting…' : 'Delete my account'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setProblem(null);
+              setStep('idle');
+            }}
+            disabled={busy}
+            className={quietButton}
+          >
+            Keep my account
           </button>
         </div>
       )}
