@@ -88,9 +88,15 @@ test('V3G-54 · ⭐ it is installable: manifest and icons are really there', asy
   expect(icons?.length ?? 0).toBeGreaterThan(0);
 
   // Every icon the manifest promises has to exist, or installing looks broken.
+  //
+  // Resolved against the page, not against `href`: the manifest link is a
+  // relative path, and a relative string cannot be a base URL — `new URL` throws
+  // `Invalid URL` on it. The first run of this test against the real site found
+  // that, which is a fair thing for a smoke test to catch about itself.
   for (const icon of icons) {
-    const file = await request.get(new URL(icon.src, href!).toString());
+    const file = await request.get(new URL(icon.src, page.url()).toString());
     expect(file.status(), icon.src).toBe(200);
+    expect(Number(file.headers()['content-length'] ?? 1), icon.src).toBeGreaterThan(0);
   }
 });
 
