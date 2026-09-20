@@ -137,9 +137,15 @@ Each guard was broken on purpose, the tests run, and the code restored.
 The layout mutant is the one the unit tests can't see, because they render `ThemeEffect` directly.
 Browser tests run only on CI, so it went through a throwaway draft PR.
 
-**One oddity, reported as seen.** The first time I ran the "stops watching the head" mutant, three
-unrelated tests (V3A-01 to 03) failed alongside V3A-15. Run again on its own, only V3A-15 failed,
-and the real code then passed twice in a row. I couldn't reproduce the extra failures.
+**One oddity, chased down.** The first time I ran the "stops watching the head" mutant, three
+unrelated tests (V3A-01 to 03) failed alongside V3A-15. Running the same mutant again, the same
+way, only V3A-15 failed — the expected result — and the real code passed every time.
+
+The cause was my own mutation script, not the app or the tests: it rewrote and restored the same
+file several times in a row, quickly enough that the test runner's cache served a half-stale copy
+for one run. Nothing to fix in Habibit. Worth knowing for the next block: **a mutation run should
+end with the file restored before the next one starts**, or a stale cache can make an honest mutant
+look worse than it is.
 
 ---
 
