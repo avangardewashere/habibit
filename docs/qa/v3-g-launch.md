@@ -62,17 +62,32 @@ only its own browser storage.
 | V3G-05 | ⭐ It is reachable without an account | same | ✅ |
 | V3G-06 | It answers "no account at all" first | same | ✅ |
 | V3G-07 | It offers a way back into the app | same | ✅ |
-| V3G-50 | ⭐ The live site is served and renders | `e2e-smoke/live.spec.ts` | ☐ after deploy |
-| V3G-51 | ⭐ A habit can be added and ticked on the real build | same | ☐ after deploy |
-| V3G-52 | ⭐ The service worker registers on the real origin | same | ☐ after deploy |
-| V3G-53 | ⭐ The app still opens with the network cut | same | ☐ after deploy |
-| V3G-54 | ⭐ Manifest and every icon it promises really exist | same | ☐ after deploy |
-| V3G-55 | ⭐ The privacy page loads and is linked | same | ☐ after deploy |
-| V3G-56 | ⭐ Accounts are switched on in the deployed build | same | ☐ after deploy |
-| V3G-57 | The page reports no console errors | same | ☐ after deploy |
+| V3G-50 | ⭐ The live site is served and renders | `e2e-smoke/live.spec.ts` | ✅ live |
+| V3G-51 | ⭐ A habit can be added and ticked on the real build | same | ✅ live |
+| V3G-52 | ⭐ The service worker registers on the real origin | same | ✅ live |
+| V3G-53 | ⭐ The app still opens with the network cut | same | ✅ live |
+| V3G-54 | ⭐ Manifest and every icon it promises really exist | same | ✅ live (after a fix — see below) |
+| V3G-55 | ⭐ The privacy page loads and is linked | same | ✅ live |
+| V3G-56 | ⭐ Accounts are switched on in the deployed build | same | ❌ **accounts are off in production** |
+| V3G-57 | The page reports no console errors | same | ✅ live |
 
-The smoke rows are unticked because **they cannot pass until you have deployed**. They are not
-failures; they are the last thing to run.
+### What the first real run found
+
+Run against habibit.vercel.app straight after v3 was merged. **Seven of eight pass.** The two that
+did not are worth separating, because they are completely different kinds of thing:
+
+**V3G-56 is a real gap, and it is on your checklist.** There is no account button on the live site,
+because the Supabase settings were never added to Vercel. Confirmed independently: the project URL
+appears in none of the deployed JavaScript. Everything that does not need an account works; sync,
+reminders and delete-account are simply not there yet.
+
+**V3G-54 was a bug in my own test.** `new URL(icon.src, href)` used the manifest's *relative* path
+as a base, and a relative string cannot be a base URL — so it threw `Invalid URL` before checking
+anything. The live manifest and all three icons were fine the whole time (200, real file sizes).
+Fixed to resolve against the page instead, and it passes.
+
+That is a fair thing for a smoke test to catch about itself on its first real run, and a reminder
+that a red test means "look", not "the site is broken".
 
 ---
 
