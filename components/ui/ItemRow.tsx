@@ -178,12 +178,17 @@ export function ItemRow({
             }
             onToggle();
           }}
-          className="flex min-h-14 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          /* min-w-0: without it a flex item never shrinks below its content, and a long
+             title pushed the menu pills out past the card (found by CI in v3 Block B). */
+          className="flex min-h-14 min-w-0 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
         >
           <CheckCircle checked={checked} />
           <span
             className={[
-              'min-w-0 break-words text-[15px] leading-snug transition-colors',
+              'min-w-0 text-[15px] leading-snug transition-colors',
+              // While the menu is open the pills take the room, so the title stays on
+              // one line and trails off rather than collapsing into a word column.
+              mode === 'menu' ? 'truncate' : 'break-words',
               checked ? 'text-ink-soft line-through' : 'text-ink',
             ].join(' ')}
           >

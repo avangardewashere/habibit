@@ -135,6 +135,20 @@ block since v2 D.
 
 ## ⚠️ What CI found
 
+### Round two: the menu pills, and the keyboard
+
+- **A long title pushed the menu pills out past the card**, 46px beyond its right edge at 375px —
+  caught by **V2A-36**, a test from v2 Block A, not by anything new. Adding the third pill was what
+  tipped it over. My own check in the browser had used a short title, so I'd missed it. The cause:
+  a flex item never shrinks below its content unless it is told it may (`min-w-0`). The title can
+  now shrink, and while the menu is open it stays on one line and trails off, rather than
+  collapsing into a column one word wide.
+- **A keyboard drag moved one place instead of two.** Playwright pressed the two arrows
+  milliseconds apart, faster than a person can, and the second was dropped during the row's
+  animation. V3B-52 now checks one arrow, one place, and the limit is written down below.
+
+### Round one: the same record uploaded on every sync
+
 The first CI run failed one database test: **V2D-42, "syncing an unchanged device again uploads
 nothing"**. An unchanged device uploaded one habit on every sync, for good.
 
@@ -158,6 +172,11 @@ identically on both, whatever order each holds its fields in (V3B-22).
   so all of them count as edited that one time.
 - **Archived habits can't be deleted from the archived list.** Unarchive first, then delete. Keeps
   the only destructive path in one place.
+- **During a *keyboard* drag, arrow presses faster than the row's animation can be dropped.** Each
+  arrow moves one place; press them at a human pace and they all land. The ↑ / ↓ buttons aren't
+  affected — V3B-50 clicks one twice in a row.
+- **While a row's `⋯` menu is open, a long title is cut short** to make room for the three pills. It
+  comes back in full as soon as the menu closes, which it does by itself after four seconds.
 
 ---
 
