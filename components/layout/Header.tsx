@@ -1,5 +1,5 @@
 import { AccountMenu } from '@/components/account/AccountMenu';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { ThemeMenu } from '@/components/theme/ThemeMenu';
 import { TodayLabel } from './TodayLabel';
 
 export function Header() {
@@ -15,10 +15,10 @@ export function Header() {
           {/* The wordmark stays brand coral in both themes — it is identity, not a role. */}
           Habi<span className="text-habibit-500">bit</span>
         </h1>
-        {/* `relative` anchors the account popup to this group's right edge. */}
+        {/* `relative` anchors both popups to this group's right edge. */}
         <div className="relative flex shrink-0 items-center gap-2">
           <AccountMenu />
-          <ThemeToggle />
+          <ThemeMenu />
         </div>
       </div>
       <p className="mt-1 text-sm text-ink-soft">Little habits. Lots of love.</p>

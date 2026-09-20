@@ -9,7 +9,8 @@ roadmap — the version plan lives in the QA docs and the session plan. This is 
 ## Move the theme control into a popup
 
 **Raised:** 2026-09-09, after v0.5 Block B shipped.
-**Status:** deferred, current version is fine.
+**Status:** ✅ done in v3 Block A (2026-09-19), split first exactly as described below.
+See `docs/qa/v3-a-theme-menu.md`. Kept here for the reasoning.
 
 The theme control is currently three always-visible buttons in the header
 (`components/ui/ThemeToggle.tsx`), about 136×44px. It works, but it spends a lot of
@@ -58,5 +59,6 @@ Where the codebase already does this well, and should stay this way:
   than components.
 
 The rule of thumb worth keeping: **a component should either render something or
-cause an effect, not both.** The `ThemeToggle` case above is the one place that is
-currently violated, and it is exactly the place that turned out to be hard to move.
+cause an effect, not both.** The `ThemeToggle` case above was the one place that
+violated it, and it was exactly the place that turned out to be hard to move. Since v3
+Block A it is two components: `ThemeEffect` (the effect) and `ThemeMenu` (the drawing).

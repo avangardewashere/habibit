@@ -6,8 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * Open/close state for a small popup anchored to a button: closes on Escape and
  * on a tap outside, and hands focus back to the button when closed by keyboard.
  *
- * Only behaviour, no markup, so any popup can reuse it — the account menu now,
- * and the theme toggle when it becomes a popup (docs/backlog.md).
+ * Only behaviour, no markup, so any popup can reuse it: the account menu and the
+ * theme menu both do.
  */
 export function usePopover<Anchor extends HTMLElement, Wrapper extends HTMLElement>() {
   const [open, setOpen] = useState(false);
