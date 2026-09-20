@@ -1,12 +1,12 @@
 # Habibit: v3 Block B, your own order and archiving
 
-**Block:** B of 7 (v3) · **Date:** 2026-09-20 · **Status:** ⏳ green locally, browser and database tests running on CI
+**Block:** B of 7 (v3) · **Date:** 2026-09-20 · **Status:** ✅ all green on CI, waiting for your sign-off
 
 > **Habits sit where you put them, and one you're done with can step aside without taking its
 > history with it.** Tap **Arrange** to drag habits into order, or nudge them with ↑ / ↓. Archive a
 > habit from its `⋯` menu; it waits under "Archived", streak intact, until you bring it back.
 
-**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken · ⏳ waiting on CI
+**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken
 
 ---
 
@@ -98,18 +98,18 @@ after two moves, only the moved habits' keys had changed.
 | V3B-19 | ⭐ Data saved before v3 loads with no position, and the storage version stays 2 | `lib/storage.test.ts` | ✅ 🔴 |
 | V3B-20, 21 | A position goes to the database and back; an older build's row reads as "no position" | `lib/sync/sync.test.ts` | ✅ 🔴 |
 | V3B-22 | ⭐ The same habit with its fields in a different order counts as unchanged (found by CI) | `lib/sync/merge.test.ts` | ✅ 🔴 |
-| V3B-40 | ⭐ A position is stored in the real database and reaches another device | `supabase/tests/sync.test.ts` | ⏳ |
-| V3B-41 | An upload from an older build leaves the stored position alone | same | ⏳ |
-| V3B-42 | A habit an older build created reads back as "no position" | same | ⏳ |
-| V3B-43 | The database refuses a malformed position | same | ⏳ |
-| V3B-50 | ⭐ In a real browser: ↑ / ↓ reorder, focus stays put, the order survives a reload | `e2e/arrange.spec.ts` | ⏳ |
-| V3B-51 | Dragging a handle moves a habit | same | ⏳ |
-| V3B-52 | ⭐ The arrow keys move a habit from its handle, one press one place, focus staying put | same | ⏳ |
-| V3B-53 | ⭐ Archiving hides a habit; unarchiving brings it back in place, streak and all | same | ⏳ |
-| V3B-54 | Arrange appears only with two or more habits; adding waits while arranging | same | ⏳ |
-| V3B-55 | At 375px the three menu pills fit inside the card, with a long title | same | ⏳ |
-| V3B-56 | Every new control is at least 44×44 | same | ⏳ |
-| V3B-57 | ⭐ A new order reaches your other device | same | ⏳ |
+| V3B-40 | ⭐ A position is stored in the real database and reaches another device | `supabase/tests/sync.test.ts` | ✅ |
+| V3B-41 | An upload from an older build leaves the stored position alone | same | ✅ |
+| V3B-42 | A habit an older build created reads back as "no position" | same | ✅ |
+| V3B-43 | The database refuses a malformed position | same | ✅ |
+| V3B-50 | ⭐ In a real browser: ↑ / ↓ reorder, focus stays put, the order survives a reload | `e2e/arrange.spec.ts` | ✅ |
+| V3B-51 | Dragging a handle moves a habit | same | ✅ |
+| V3B-52 | ⭐ The arrow keys move a habit from its handle, one press one place, focus staying put | same | ✅ |
+| V3B-53 | ⭐ Archiving hides a habit; unarchiving brings it back in place, streak and all | same | ✅ |
+| V3B-54 | Arrange appears only with two or more habits; adding waits while arranging | same | ✅ |
+| V3B-55 | At 375px the three menu pills fit inside the card, with a long title | same | ✅ |
+| V3B-56 | Every new control is at least 44×44 | same | ✅ |
+| V3B-57 | ⭐ A new order reaches your other device | same | ✅ |
 
 ---
 
@@ -190,8 +190,8 @@ identically on both, whatever order each holds its fields in (V3B-22).
 | Suite | Count | Result |
 |---|---|---|
 | Unit (Vitest) | 287 | ✅ |
-| Browser (Playwright), 88 tests × 2 devices | 176 runs | ⏳ |
-| Database | 34 | ⏳ |
+| Browser (Playwright), 88 tests × 2 devices | 176 runs | ✅ CI run 35501125626 |
+| Database | 34 | ✅ |
 
 ---
 
