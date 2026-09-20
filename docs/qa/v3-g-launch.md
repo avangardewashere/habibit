@@ -1,6 +1,6 @@
 # Habibit: v3 Block G, go live
 
-**Block:** G of 7 (v3) · **Date:** 2026-09-24 · **Status:** ⏳ the code is ready; the launch itself is yours
+**Block:** G of 7 (v3) · **Date:** 2026-09-24 · **Status:** ✅ the code is green on CI (run 35516875628), first try — the launch itself is yours
 
 > **This is the block that makes Habibit public**, and most of it is not code. What I could build,
 > I have built: a privacy page, a smoke test that checks the real site, and this checklist.
@@ -200,10 +200,10 @@ land, or the live app will ask for columns that are not there yet.
 
 | Suite | Count | Result |
 |---|---|---|
-| Unit (Vitest) | 375 | ⏳ |
-| Database | 64 | ⏳ |
-| Browser (Playwright) | 206 runs | ⏳ |
+| Unit (Vitest) | 375 | ✅ |
+| Database | 64 | ✅ |
+| Browser (Playwright), 103 tests × 2 devices | 206 runs | ✅ |
 | Smoke (live site) | 8 tests × 2 devices | ☐ after deploy |
 
-The first three are on CI. The privacy tests and the six mutation checks were run here; the full
-suites were left to CI, because this machine takes the better part of an hour over them.
+The first three are green on CI run 35516875628, first try. The smoke row is the only thing in v3
+that cannot be ticked yet, and it is waiting on a deploy rather than on a fix.
