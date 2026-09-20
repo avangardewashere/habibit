@@ -33,8 +33,9 @@ The plan said to check the drag library before writing anything.
 - **`@dnd-kit/react` 0.5.0**: the newer successor, still pre-1.0. Not chosen — the app doesn't need
   what it adds, and a pre-1.0 dependency in a launch version isn't a trade worth making.
 
-Keyboard users are covered by the library's own keyboard sensor (space, arrows, space) **and** by
-the ↑ / ↓ buttons, so the plan's "menu fallback" wasn't needed.
+Keyboard users ended up covered by our own arrow-key handling on the handle **and** by the ↑ / ↓
+buttons, so the plan's "menu fallback" wasn't needed. The library's keyboard mode was tried first
+and dropped — see what CI found, below.
 
 ---
 
@@ -103,7 +104,7 @@ after two moves, only the moved habits' keys had changed.
 | V3B-43 | The database refuses a malformed position | same | ⏳ |
 | V3B-50 | ⭐ In a real browser: ↑ / ↓ reorder, focus stays put, the order survives a reload | `e2e/arrange.spec.ts` | ⏳ |
 | V3B-51 | Dragging a handle moves a habit | same | ⏳ |
-| V3B-52 | A keyboard can move a habit: space, arrows, space | same | ⏳ |
+| V3B-52 | ⭐ The arrow keys move a habit from its handle, one press one place, focus staying put | same | ⏳ |
 | V3B-53 | ⭐ Archiving hides a habit; unarchiving brings it back in place, streak and all | same | ⏳ |
 | V3B-54 | Arrange appears only with two or more habits; adding waits while arranging | same | ⏳ |
 | V3B-55 | At 375px the three menu pills fit inside the card, with a long title | same | ⏳ |
@@ -143,9 +144,13 @@ block since v2 D.
   a flex item never shrinks below its content unless it is told it may (`min-w-0`). The title can
   now shrink, and while the menu is open it stays on one line and trails off, rather than
   collapsing into a column one word wide.
-- **A keyboard drag moved one place instead of two.** Playwright pressed the two arrows
-  milliseconds apart, faster than a person can, and the second was dropped during the row's
-  animation. V3B-52 now checks one arrow, one place, and the limit is written down below.
+- **Keyboard reordering didn't work reliably.** The drag library's keyboard mode picks the habit
+  up and drags it under measurements taken when the drag began, so the list moved out from under
+  them: the first arrow press did nothing. Telling it to keep measuring helped, and left the test
+  *flaky* — it failed, then passed on a retry. Flaky is not fixed, so the keyboard path is now
+  **ours**: with the handle focused, ↑ and ↓ move the habit one place each, through exactly the
+  same code as the ↑ / ↓ buttons. One press, one place, and focus stays on the handle. The library
+  now handles only finger and mouse dragging, which it does well.
 
 ### Round one: the same record uploaded on every sync
 
@@ -172,9 +177,9 @@ identically on both, whatever order each holds its fields in (V3B-22).
   so all of them count as edited that one time.
 - **Archived habits can't be deleted from the archived list.** Unarchive first, then delete. Keeps
   the only destructive path in one place.
-- **During a *keyboard* drag, arrow presses faster than the row's animation can be dropped.** Each
-  arrow moves one place; press them at a human pace and they all land. The ↑ / ↓ buttons aren't
-  affected — V3B-50 clicks one twice in a row.
+- **There is no "pick up and drop" keyboard mode.** With the handle focused, ↑ and ↓ move the habit
+  straight away, one place per press. It is simpler to explain and it always works; what it loses
+  is the drag library's own spoken "picked up… dropped" announcements during a keyboard move.
 - **While a row's `⋯` menu is open, a long title is cut short** to make room for the three pills. It
   comes back in full as soon as the menu closes, which it does by itself after four seconds.
 

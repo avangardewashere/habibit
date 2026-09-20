@@ -3,7 +3,6 @@
 import {
   closestCenter,
   DndContext,
-  KeyboardSensor,
   MeasuringStrategy,
   PointerSensor,
   useSensor,
@@ -12,15 +11,10 @@ import {
   type DragEndEvent,
   type UniqueIdentifier,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 import type { Habit } from '@/lib/types';
 
 type Move = (id: string, toIndex: number) => void;
@@ -34,17 +28,20 @@ type Move = (id: string, toIndex: number) => void;
  *
  * Three ways to move a habit, all ending in the same `onMove(id, toIndex)`:
  * - dragging the handle, with a finger or a mouse;
- * - the handle with a keyboard: Space to pick up, arrows to move, Space to drop;
- * - the ↑ / ↓ buttons, one place at a time.
+ * - the handle with a keyboard: ↑ / ↓ move it one place, straight away;
+ * - the ↑ / ↓ buttons, the same thing with a tap.
+ *
+ * The keyboard path is ours rather than the drag library's pick-up-and-drop
+ * mode. That mode moves an item by dragging it under its own measurements, and
+ * on CI it dropped the first arrow press and then went flaky. Moving the habit
+ * directly is the same code path as the ↑ / ↓ buttons: one press, one place,
+ * every time.
  */
 export function ArrangeList({ habits, onMove }: { habits: Habit[]; onMove: Move }) {
-  const sensors = useSensors(
-    // No press-and-hold delay: the handle has touch-action none, so a drag that
-    // starts on it is never mistaken for a scroll, and scrolling anywhere else
-    // works as normal.
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  // No press-and-hold delay: the handle has touch-action none, so a drag that
+  // starts on it is never mistaken for a scroll, and scrolling anywhere else
+  // works as normal.
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const indexOf = (id: UniqueIdentifier) => habits.findIndex((h) => h.id === id);
   const titleOf = (id: UniqueIdentifier) => habits[indexOf(id)]?.title ?? 'Habit';
@@ -79,8 +76,7 @@ export function ArrangeList({ habits, onMove }: { habits: Habit[]; onMove: Move 
       accessibility={{
         announcements,
         screenReaderInstructions: {
-          draggable:
-            'To move this habit, press space or enter, then the up and down arrow keys. Press space or enter again to drop it, or escape to cancel.',
+          draggable: 'Press the up and down arrow keys to move this habit, or drag it.',
         },
       }}
     >
@@ -106,21 +102,30 @@ function ArrangeRow({ habit, index, count, onMove }: { habit: Habit; index: numb
    */
   const upRef = useRef<HTMLButtonElement>(null);
   const downRef = useRef<HTMLButtonElement>(null);
-  const refocus = useRef<'up' | 'down' | null>(null);
+  const handleRef = useRef<HTMLButtonElement>(null);
+  const refocus = useRef<'up' | 'down' | 'handle' | null>(null);
   useEffect(() => {
     if (!refocus.current) return;
-    (refocus.current === 'up' ? upRef : downRef).current?.focus();
+    const target = refocus.current === 'up' ? upRef : refocus.current === 'down' ? downRef : handleRef;
+    target.current?.focus();
     refocus.current = null;
   }, [index]);
 
   const first = index === 0;
   const last = index === count - 1;
 
-  function step(direction: 'up' | 'down') {
+  function step(direction: 'up' | 'down', focusAfter: 'up' | 'down' | 'handle' = direction) {
     // aria-disabled rather than disabled at the ends, so the button keeps focus.
     if (direction === 'up' ? first : last) return;
-    refocus.current = direction;
+    refocus.current = focusAfter;
     onMove(habit.id, direction === 'up' ? index - 1 : index + 1);
+  }
+
+  function onHandleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    // Otherwise the arrow scrolls the page out from under the list.
+    event.preventDefault();
+    step(event.key === 'ArrowUp' ? 'up' : 'down', 'handle');
   }
 
   const button =
@@ -136,11 +141,15 @@ function ArrangeRow({ habit, index, count, onMove }: { habit: Habit; index: numb
       ].join(' ')}
     >
       <button
-        ref={setActivatorNodeRef}
+        ref={(node) => {
+          setActivatorNodeRef(node);
+          handleRef.current = node;
+        }}
         type="button"
         {...attributes}
         {...listeners}
-        aria-label={`Reorder ${habit.title}`}
+        onKeyDown={onHandleKeyDown}
+        aria-label={`Reorder ${habit.title}, or press the up and down arrow keys`}
         className={`${button} cursor-grab touch-none active:cursor-grabbing`}
       >
         <GripVertical className="h-5 w-5" strokeWidth={2.5} />

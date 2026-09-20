@@ -13,8 +13,9 @@ const MIN_TAP = 44;
 async function order(page: Page): Promise<string[]> {
   const handles = page.getByRole('button', { name: /^Reorder / });
   if ((await handles.count()) > 0) {
+    // "Reorder Drink water, or press the up and down arrow keys" → "Drink water"
     return (await handles.evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')!))).map((label) =>
-      label.replace(/^Reorder /, ''),
+      label.replace(/^Reorder /, '').replace(/, or press .*$/, ''),
     );
   }
   // The habits section comes first; its checkboxes are the habits, in order.
@@ -57,8 +58,8 @@ test('V3B-51 · dragging a handle moves a habit', async ({ page }) => {
   await withHabits(page, 'Water', 'Stretch', 'Read');
   await arrange(page);
 
-  const from = await box(page.getByRole('button', { name: 'Reorder Read' }));
-  const to = await box(page.getByRole('button', { name: 'Reorder Water' }));
+  const from = await box(page.getByRole('button', { name: /^Reorder Read/ }));
+  const to = await box(page.getByRole('button', { name: /^Reorder Water/ }));
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
   // In steps, like a real finger, so the list sees the drag travel over each row.
@@ -68,18 +69,21 @@ test('V3B-51 · dragging a handle moves a habit', async ({ page }) => {
   await expect.poll(() => order(page)).toEqual(['Read', 'Water', 'Stretch']);
 });
 
-test('V3B-52 · a keyboard can move a habit: Space, arrow, Space', async ({ page }) => {
+test('V3B-52 · ⭐ the arrow keys move a habit from its handle, one press one place', async ({ page }) => {
   await withHabits(page, 'Water', 'Stretch', 'Read');
   await arrange(page);
 
-  await page.getByRole('button', { name: 'Reorder Water' }).focus();
-  await page.keyboard.press('Space');
+  const handle = page.getByRole('button', { name: /^Reorder Water/ });
+  await handle.focus();
   await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowDown');
 
-  // One arrow, one place. A second arrow pressed within the row's animation can
-  // be dropped (see the report's known limits); ↑ / ↓ have no such limit.
-  await expect.poll(() => order(page)).toEqual(['Stretch', 'Water', 'Read']);
+  expect(await order(page)).toEqual(['Stretch', 'Read', 'Water']);
+  // Focus stays on the handle it moved with, so the next press keeps going.
+  await expect(handle).toBeFocused();
+
+  await page.keyboard.press('ArrowUp');
+  expect(await order(page)).toEqual(['Stretch', 'Water', 'Read']);
 });
 
 test('V3B-53 · ⭐ archiving hides a habit; unarchiving brings it back in place, streak and all', async ({ page }) => {
@@ -156,7 +160,7 @@ test.describe('at the smallest supported phone width', () => {
     await arrange(page);
     for (const target of [
       page.getByRole('button', { name: 'Done arranging habits' }),
-      page.getByRole('button', { name: 'Reorder Water' }),
+      page.getByRole('button', { name: /^Reorder Water/ }),
       page.getByRole('button', { name: 'Move Water up' }),
       page.getByRole('button', { name: 'Move Water down' }),
     ]) {
