@@ -12,6 +12,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "icons": "node scripts/generate-icons.mjs",
     "e2e": "playwright test",
+    "smoke": "playwright test --config playwright.smoke.config.ts",
     "e2e:report": "playwright show-report",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:db && npm run e2e",
     "db:start": "supabase start -x studio,imgproxy,logflare,vector,supavisor",
