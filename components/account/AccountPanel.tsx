@@ -272,7 +272,14 @@ function SignIn() {
         <h2 className="font-extrabold text-ink">Sync across devices</h2>
         <p className="text-sm text-ink-soft">
           Sign in with your email. No password: we’ll send you a code. Your habits stay on this
-          device either way.
+          device either way.{' '}
+          <a
+            href="/privacy"
+            className="font-bold text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            What we store
+          </a>
+          .
         </p>
       </div>
       <input

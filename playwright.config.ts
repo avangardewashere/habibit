@@ -38,6 +38,8 @@ if (!supabase && isCI) throw new Error('CI must run the browser tests against lo
  * effects only happen in dev), and production is what people actually use.
  */
 export default defineConfig({
+  // Only ./e2e. The smoke tests in ./e2e-smoke visit the real site and are
+  // run by hand after a deploy (playwright.smoke.config.ts).
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: isCI,
