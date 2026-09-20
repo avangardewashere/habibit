@@ -62,6 +62,14 @@ function install() {
   });
 }
 
+/** A browser that offers the API but never produces a worker: Firefox's private windows. */
+function hangingWorker() {
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    value: { ready: new Promise(() => {}) },
+  });
+}
+
 async function load() {
   vi.resetModules();
   vi.stubEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', KEY);
@@ -152,5 +160,37 @@ describe('registering this device', () => {
   it('turning off when this device was never registered is a no-op', async () => {
     const { unsubscribeThisDevice } = await load();
     expect(await unsubscribeThisDevice()).toBeNull();
+  });
+
+  /*
+   * `navigator.serviceWorker.ready` is a promise that simply never settles when
+   * registration failed. Awaiting it with nothing else would leave the popup
+   * saying "Checking your reminder…" for as long as it stayed open.
+   */
+  it('V3D-25 · ⭐ a worker that never arrives answers, rather than never answering', async () => {
+    hangingWorker();
+    const { currentSubscription, WORKER_WAIT_MS } = await load();
+
+    vi.useFakeTimers();
+    const answer = currentSubscription();
+    await vi.advanceTimersByTimeAsync(WORKER_WAIT_MS);
+    vi.useRealTimers();
+
+    expect(await answer).toBeNull();
+  });
+
+  it('V3D-26 · ⭐ and turning it on there fails honestly instead of waiting forever', async () => {
+    fake.permission = 'granted';
+    hangingWorker();
+    const { subscribeThisDevice, unsubscribeThisDevice, WORKER_WAIT_MS } = await load();
+
+    vi.useFakeTimers();
+    const on = subscribeThisDevice();
+    const off = unsubscribeThisDevice();
+    await vi.advanceTimersByTimeAsync(WORKER_WAIT_MS);
+    vi.useRealTimers();
+
+    expect(await on).toEqual({ ok: false, reason: 'failed' });
+    expect(await off).toBeNull();
   });
 });

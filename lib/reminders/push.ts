@@ -62,10 +62,29 @@ function toDeviceSubscription(subscription: PushSubscription): DeviceSubscriptio
   return { endpoint: subscription.endpoint, p256dh: keys.p256dh ?? '', auth: keys.auth ?? '' };
 }
 
+/**
+ * The worker this device's push subscription hangs off, or `null`.
+ *
+ * `navigator.serviceWorker.ready` never settles when registration failed —
+ * Firefox's private windows refuse service workers while still offering the
+ * API. Waiting on it forever would leave the popup on "Checking your reminder…"
+ * with nothing to read and nothing to do, so the wait is capped: a browser with
+ * no worker by then is one that cannot take a reminder.
+ */
+export const WORKER_WAIT_MS = 5_000;
+
+function workerReady(): Promise<ServiceWorkerRegistration | null> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), WORKER_WAIT_MS)),
+  ]);
+}
+
 /** This device's existing subscription, if it already has one. */
 export async function currentSubscription(): Promise<DeviceSubscription | null> {
   if (!pushSupported()) return null;
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await workerReady();
+  if (!registration) return null;
   const subscription = await registration.pushManager.getSubscription();
   return subscription ? toDeviceSubscription(subscription) : null;
 }
@@ -94,7 +113,8 @@ export async function subscribeThisDevice(): Promise<SubscribeResult> {
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await workerReady();
+    if (!registration) return { ok: false, reason: 'failed' };
     const subscription =
       (await registration.pushManager.getSubscription()) ??
       (await registration.pushManager.subscribe({
@@ -112,8 +132,8 @@ export async function subscribeThisDevice(): Promise<SubscribeResult> {
 export async function unsubscribeThisDevice(): Promise<string | null> {
   if (!pushSupported()) return null;
   try {
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
+    const registration = await workerReady();
+    const subscription = await registration?.pushManager.getSubscription();
     if (!subscription) return null;
     const { endpoint } = subscription;
     await subscription.unsubscribe();

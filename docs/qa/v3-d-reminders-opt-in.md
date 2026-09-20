@@ -94,6 +94,8 @@ would promise a reminder that no server knows about.
 | V3D-14 | A push service that refuses is a failure, not a crash | same | ✅ |
 | V3D-15 | A build with no key has no reminders | same | ✅ 🔴 |
 | V3D-16 | Turning off hands the address back to the browser | same | ✅ |
+| V3D-25 | ⭐ A browser that never produces a service worker gets an answer, not a wait with no end (found by CI) | same | ✅ 🔴 |
+| V3D-26 | ⭐ Turning it on there fails honestly instead of hanging | same | ✅ 🔴 |
 | V3D-17 | ⭐ A client that throws is handled, not left as an unhandled rejection (found by CI) | `lib/reminders/store.test.ts` | ✅ 🔴 |
 | V3D-18, 19 | With no account nothing is read or written; no row yet reads as "off" | same | ✅ |
 | V3D-20 | ⭐ The worker shows what the sender wrote, under one tag | `lib/offline/sw-push.test.ts` | ✅ 🔴 |
@@ -108,8 +110,9 @@ would promise a reminder that no server knows about.
 | V3D-45 | A device address has to be an https URL | same | ⏳ |
 | V3D-46 | The same device registering again updates its keys rather than duplicating | same | ⏳ |
 | V3D-47 | Deleting the account takes its reminders with it | same | ⏳ |
-| V3D-50 | ⭐ In a real browser: signed in, the popup offers a reminder, off to begin with | `e2e/reminders.spec.ts` | ⏳ |
+| V3D-50 | ⭐ In a real browser: signed in and allowed, the popup offers a reminder, off to begin with | `e2e/reminders.spec.ts` | ⏳ |
 | V3D-51 | ⭐ Signed out, there is no reminder to set | same | ⏳ |
+| V3D-52 | ⭐ In a real browser that blocks notifications: told how to undo it, and not offered a switch | same | ⏳ |
 
 **The service worker's push rules are tested directly.** `public/sw.js` can't be imported — it isn't
 a module — so the test reads the real file and runs it against a stand-in for the worker, then fires
@@ -134,6 +137,7 @@ Each guard was broken on purpose, the tests run, and the file restored before th
 | Turning off leaves the device registered | V3D-35 |
 | A failed save is shown as success | **V3D-39 — added after this mutant survived** |
 | The store stops catching a client that throws | V3D-17 |
+| The wait for a service worker goes back to having no end | V3D-25, V3D-26 |
 
 **The failed-save row is the honest one:** my first nine tests all passed with that path broken, so
 the switch would have said "on" while your account knew nothing about it. That test came from the
@@ -162,6 +166,32 @@ tests and reported the error separately. I have been reading too narrow a slice 
 
 ---
 
+## ⚠️ What CI found, the second time
+
+**V3D-50 failed on both devices: "Daily reminder" was nowhere on the page.**
+
+This one was my test, not the app. **A browser under automation is given nothing it hasn't asked
+for** — Chromium reports notifications as *denied* until the test grants the permission. So the
+popup showed exactly what it should have shown to a browser in that state:
+
+> Notifications are blocked for Habibit. Your browser's settings for this site can turn them back on.
+
+I read "the section isn't there" and assumed a missing key. The trace CI keeps on failure had the
+real answer in it: the message was on screen, in the right place. **The app was right and the test
+was wrong**, which is the better way round, but it cost a red run.
+
+Two changes:
+
+1. **V3D-50 now asks for the permission**, and the blocked state gets its own test (V3D-52) rather
+   than being the accidental default. Both are real states a person can be in.
+2. **A wait that could never finish is now capped.** Looking at this I found a worse version of
+   the same shape as the last fix: `navigator.serviceWorker.ready` is a promise that simply never
+   settles when registration failed, which Firefox's private windows do. The popup would have said
+   "Checking your reminder…" for as long as you left it open — no message, no error, nothing to do.
+   It now gives up after five seconds and says this device can't take a reminder (V3D-25, V3D-26).
+
+---
+
 ## Known limits
 
 - **Nothing sends yet.** Turning it on registers this device and saves the time; Block E is the part
@@ -170,6 +200,9 @@ tests and reported the error separately. I have been reading too narrow a slice 
   a private key, which this repo does not have. The registering logic is covered by unit tests with
   the browser's push API stood in for; the real thing is checked on your phone in Block E.
 - **No per-habit reminder times.** One time per account, as you chose.
+- **A browser that refuses service workers** (Firefox's private windows) shows the reminder
+  section, waits five seconds, and then reports that this device can't take one. It can't tell that
+  case apart from a slow phone, so the wait is the same for both.
 - **Desktop Safari can't do web push this way** and says so. Android Chrome, desktop Chrome, Edge and
   Firefox can.
 
@@ -179,8 +212,8 @@ tests and reported the error separately. I have been reading too narrow a slice 
 
 | Suite | Count | Result |
 |---|---|---|
-| Unit (Vitest) | 337 | ✅ |
-| Browser (Playwright), 96 tests × 2 devices | 192 runs | ⏳ |
+| Unit (Vitest) | 339 | ✅ |
+| Browser (Playwright), 97 tests × 2 devices | 194 runs | ⏳ |
 | Database | 42 | ⏳ |
 
 ---
