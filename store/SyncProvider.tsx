@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { signOut as signOutOfAccount } from '@/lib/auth/actions';
+import { deleteAccount as deleteTheAccount, signOut as signOutOfAccount } from '@/lib/auth/actions';
 import { useAccount } from '@/lib/auth/session';
 import { isOnline } from '@/lib/offline/connection';
 import { getSupabase } from '@/lib/supabase/client';
@@ -39,6 +39,11 @@ type SyncContextValue = {
    * couldn't — so the caller can warn before anything is lost.
    */
   signOutAndClear: (options?: { force?: boolean }) => Promise<boolean>;
+  /**
+   * Deletes the account and stops syncing, **keeping this device's habits**.
+   * Resolves the reason it couldn't, or `null` if it did.
+   */
+  deleteAccountKeepingDevice: () => Promise<string | null>;
 };
 
 /*
@@ -50,6 +55,7 @@ const SyncContext = createContext<SyncContextValue>({
   pending: 0,
   syncNow: async () => false,
   signOutAndClear: async () => false,
+  deleteAccountKeepingDevice: async () => 'Accounts are not available right now.',
 });
 
 /** Your choice: an open app checks for changes this often, while it's visible. */
@@ -248,14 +254,39 @@ export function SyncProvider({
     [syncNow, clearDevice],
   );
 
+  /*
+   * Deleting is the mirror image of signing out: sign-out keeps the account and
+   * empties the device, this keeps the device and empties the account.
+   *
+   * Nothing is synced first, on purpose. Sign-out pushes any last changes up so
+   * they aren't lost — here the place they would be pushed to is about to stop
+   * existing, and the copy that matters is the one staying on this device.
+   *
+   * The generation bump and the cleared outbox matter more than they look: a
+   * sync started a moment ago must not be allowed to finish and write a deleted
+   * account's answer back into the device.
+   */
+  const deleteAccountKeepingDevice = useCallback(async (): Promise<string | null> => {
+    const result = await deleteTheAccount();
+    if (!result.ok) return result.message;
+
+    generation.current += 1;
+    outbox.current.clear();
+    cursor.current = null;
+    setPending(0);
+    setStatus({ state: 'off' });
+    return null;
+  }, []);
+
   const value = useMemo<SyncContextValue>(
     () => ({
       status: signedIn ? status : { state: 'off' },
       pending: signedIn ? pending : 0,
       syncNow,
       signOutAndClear,
+      deleteAccountKeepingDevice,
     }),
-    [signedIn, status, pending, syncNow, signOutAndClear],
+    [signedIn, status, pending, syncNow, signOutAndClear, deleteAccountKeepingDevice],
   );
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;

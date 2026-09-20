@@ -129,3 +129,61 @@ export async function signOut(): Promise<AuthResult> {
   const { error } = await supabase.auth.signOut({ scope: 'local' });
   return error ? friendly(error) : OK;
 }
+
+/**
+ * Deletes the account and everything synced to it, then signs this device out.
+ *
+ * The database decides whose account goes — `delete_my_account()` takes no
+ * arguments and reads the caller's own id from their token, so nothing here can
+ * name someone else (supabase/migrations/20260923000000_delete_account.sql).
+ *
+ * Signing out afterwards is not a tidy-up: the token in this browser keeps
+ * working until it expires, so leaving it in place would mean an app that looks
+ * signed in to an account that no longer exists. It is done even if the sign-out
+ * itself fails, because by then the account really is gone and saying otherwise
+ * would be a lie.
+ *
+ * **What it does not touch is the copy on this device.** Your habits are still
+ * here, and the app still works, signed out, exactly as it did before you ever
+ * made an account.
+ */
+export async function deleteAccount(): Promise<AuthResult> {
+  const supabase = getSupabase();
+  if (!supabase) return OFF;
+
+  try {
+    const { data, error } = await supabase.rpc('delete_my_account');
+    if (error) {
+      return error.message === 'Failed to fetch'
+        ? { ok: false, message: 'Couldn’t reach the server. Check your connection and try again.' }
+        : { ok: false, message: 'Couldn’t delete your account. Please try again.' };
+    }
+    // `false` means the database had nobody to delete: this browser's token is
+    // stale. Signing out is exactly the right thing to do with it.
+    if (data !== true) {
+      await forgetToken(supabase);
+      return { ok: false, message: 'You’re not signed in on this device any more.' };
+    }
+  } catch {
+    return { ok: false, message: 'Couldn’t reach the server. Check your connection and try again.' };
+  }
+
+  await forgetToken(supabase);
+  return OK;
+}
+
+/**
+ * Drops this browser's token, and never fails doing it.
+ *
+ * By the time this is called the account is already gone, so there is nothing
+ * left for an error to protect — and a rejection here would escape into
+ * whatever effect called it and show nothing at all (the shape of the bug CI
+ * found in Block D).
+ */
+async function forgetToken(supabase: NonNullable<ReturnType<typeof getSupabase>>): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch {
+    // Nothing to do and nobody to tell: the account is gone either way.
+  }
+}
