@@ -1,6 +1,6 @@
 # Habibit: v3 Block E, reminders — actually sending them
 
-**Block:** E of 7 (v3) · **Date:** 2026-09-22 · **Status:** ⏳ green locally, CI running
+**Block:** E of 7 (v3) · **Date:** 2026-09-22 · **Status:** ✅ all green on CI (run 35509382275), first try — waiting for your sign-off
 
 > **The new idea in this block: code that runs with nobody using the app.** Every line before now
 > only ever ran because you tapped something. This runs at 8 o'clock whether or not anyone has
@@ -223,7 +223,10 @@ the same as "the scheduler asked". A missing secret means nobody is let in, rath
 |---|---|---|
 | Unit (Vitest) | 352 | ✅ |
 | Database | 58 | ✅ |
-| Browser (Playwright) | 194 runs | ✅ |
+| Browser (Playwright), 97 tests × 2 devices | 194 runs | ✅ |
+
+All three green on CI run 35509382275, first try — the two things that would have been bugs were
+found here, by the tests, before they ever reached a run.
 
 ---
 
