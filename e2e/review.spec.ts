@@ -53,30 +53,38 @@ test('V3C-53 · ⭐ a habit made mid-window shows blank days before it, not miss
   // Seeded rather than clicked: "made three days ago" can't be typed into the app.
   // The shared envelope() helper dates every habit the same, so this one is written out.
   const madeAt = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  // seed() takes the whole stored envelope, version and all: anything else is
+  // treated as corrupt data and quarantined, leaving the app empty.
   await seed(page, {
-    habits: [
-      {
-        id: '11111111-1111-4111-8111-111111111111',
-        title: 'New habit',
-        createdAt: madeAt,
-        updatedAt: madeAt,
-        archivedAt: null,
-        deletedAt: null,
-        position: 'V',
-      },
-    ],
-    tasks: [],
-    completions: {},
+    version: 2,
+    state: {
+      habits: [
+        {
+          id: '11111111-1111-4111-8111-111111111111',
+          title: 'New habit',
+          createdAt: madeAt,
+          updatedAt: madeAt,
+          archivedAt: null,
+          deletedAt: null,
+          position: 'V',
+        },
+      ],
+      tasks: [],
+      completions: {},
+    },
   });
   await openApp(page);
   await openReview(page);
 
   const review = sheet(page);
   await expect(review.locator('[data-day-state]')).toHaveCount(28);
-  // Four days it could have been kept (three days ago through today), the rest blank.
+  // Four days it could have been kept: three days ago through today.
   await expect(review.locator('[data-day-state="missed"]')).toHaveCount(4);
-  await expect(review.locator('[data-day-state="before"]')).toHaveCount(24);
   await expect(review.getByText('Kept 0 of 4 days')).toBeVisible();
+  // The other 24 are blank. How they split between "before it existed" and
+  // "later this week" depends on which weekday the test runs on.
+  await expect(review.locator('[data-day-state="before"], [data-day-state="future"]')).toHaveCount(24);
+  await expect(review.locator('[data-day-state="done"]')).toHaveCount(0);
 });
 
 test.describe('at the smallest supported phone width', () => {

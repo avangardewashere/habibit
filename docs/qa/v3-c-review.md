@@ -112,6 +112,21 @@ Each guard was broken on purpose, the tests run, and the file restored before th
 
 ---
 
+## ⚠️ What CI found
+
+Both were faults in my **test**, not in the review. Worth writing down, because both would have
+passed quietly for a while and then failed for reasons that looked mysterious.
+
+- **A seeded habit never appeared.** `seed()` takes the whole stored envelope — version number and
+  all — and I handed it the bare data. The app did exactly what it should with data it can't
+  recognise: quarantined it and started empty. The test then found nothing to count.
+- **A count that only held on Sundays.** The test asked for 24 "before it existed" squares. On a
+  Sunday the window ends today, so all 24 blanks are "before". Run on a Wednesday, four of them are
+  "later this week" instead, and the test fails on a Wednesday for no good reason. It now counts
+  the blanks together, and checks the split it actually cares about.
+
+---
+
 ## Known limits
 
 - **Four weeks, and no further back.** Older history is kept and still counts towards your streak;
