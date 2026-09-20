@@ -1,6 +1,6 @@
 # Habibit: v3 Block F, delete my account
 
-**Block:** F of 7 (v3) · **Date:** 2026-09-23 · **Status:** ⏳ green locally, CI running
+**Block:** F of 7 (v3) · **Date:** 2026-09-23 · **Status:** ✅ all green on CI (run 35513562968), first try — waiting for your sign-off
 
 > **A way out.** In the account popup, under *Sign out*: **Delete account**. It removes your
 > account and everything synced to it, and leaves the habits on this device exactly where they are.
@@ -106,9 +106,9 @@ a success that didn't happen (V3F-05).
 
 | ID | What it proves | Result |
 |---|---|---|
-| V3F-50 | ⭐ Deleting empties the account and leaves this device's habits alone | ⏳ |
-| V3F-51 | ⭐ The habits survive a reload, so they really are on the device | ⏳ |
-| V3F-52 | ⭐ Backing out changes nothing at all | ⏳ |
+| V3F-50 | ⭐ Deleting empties the account and leaves this device's habits alone | ✅ |
+| V3F-51 | ⭐ The habits survive a reload, so they really are on the device | ✅ |
+| V3F-52 | ⭐ Backing out changes nothing at all | ✅ |
 
 ---
 
@@ -175,7 +175,9 @@ visible if you read past the summary line.
 |---|---|---|
 | Unit (Vitest) | 368 | ✅ |
 | Database | 64 | ✅ |
-| Browser (Playwright) | 200 runs | ⏳ |
+| Browser (Playwright), 100 tests × 2 devices | 200 runs | ✅ |
+
+All three green on CI run 35513562968, first try.
 
 ---
 
