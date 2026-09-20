@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "test-results/**",
     "playwright-report/**",
+    // Deno, not Node: npm:/jsr: imports and a Deno global. Everything in that
+    // folder worth checking is in reminders.ts, which is checked.
+    "supabase/functions/**/index.ts",
   ]),
 ]);
 

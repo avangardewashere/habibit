@@ -41,8 +41,8 @@ Then open http://localhost:3000.
 | `npm run build` then `npm start` | Production build, and serve it |
 | `npm run check` | Everything: typecheck, lint, unit, database and browser tests. Run this before pushing |
 | `npm run db:start` / `db:stop` | Start or stop the local Supabase in Docker (needed by `test:db` and `e2e`) |
-| `npm run test:db` | Database tests: security (can one user reach another's data?) and sync (30) |
-| `npm test` | Unit tests (339) |
+| `npm run test:db` | Database tests (58): security (can one user reach another’s data?), sync, and who is due a reminder |
+| `npm test` | Unit tests (352) |
 | `npm run e2e` | Browser tests (97 tests, as an Android phone and as desktop Chrome) against a production build |
 | `npm run e2e:report` | Open the last browser-test report, with a step-by-step trace of any failure |
 | `npm run typecheck` | Generate Next route types, then TypeScript with no emit |
@@ -57,6 +57,8 @@ components/   UI: habit/ and task/ sections, shared ui/ primitives
 lib/          Pure logic with no React: dates, storage, theme, titles
 store/        The reducer, selectors, and the provider that persists state
 supabase/     Database migrations, local config, sign-in email, security tests
+  functions/  send-reminders: the scheduled sender (Deno, runs inside Supabase)
+  cron/       The alarm clock that wakes it, run once by hand
 public/       Icons, and sw.js: the service worker that lets the app open offline
 scripts/      Icon generation
 e2e/          Browser tests (Playwright)
