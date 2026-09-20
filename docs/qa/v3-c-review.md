@@ -1,11 +1,11 @@
 # Habibit: v3 Block C, the review
 
-**Block:** C of 7 (v3) · **Date:** 2026-09-20 · **Status:** ⏳ green locally, browser tests running on CI
+**Block:** C of 7 (v3) · **Date:** 2026-09-20 · **Status:** ✅ all green on CI, waiting for your sign-off
 
 > **You can finally look back.** A calendar button in the header opens the last four weeks, habit by
 > habit: which days you kept, how many, and your best run in that stretch.
 
-**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken · ⏳ waiting on CI
+**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken
 
 ---
 
@@ -84,12 +84,12 @@ They are now a dimmed outline: the grid keeps its shape without any of it readin
 | V3C-23 | ⭐ A habit made mid-window has blank days before it, not misses | same | ✅ 🔴 |
 | V3C-24 | ⭐ Nothing in the review can change your history | same | ✅ |
 | V3C-25 | Archived habits are left out | same | ✅ 🔴 |
-| V3C-50 | ⭐ In a real browser: opens over the app, 28 squares, closes again | `e2e/review.spec.ts` | ⏳ |
-| V3C-51 | Escape closes it and focus returns to the button | same | ⏳ |
-| V3C-52 | ⭐ The sheet has one button, and it closes it | same | ⏳ |
-| V3C-53 | ⭐ A habit made three days ago shows 24 blank days and "Kept 0 of 4 days" | same | ⏳ |
-| V3C-54 | At 375px the sheet fits, with no sideways scroll and a 44px close button | same | ⏳ |
-| V3C-55 | ⭐ The review opens with no connection | same | ⏳ |
+| V3C-50 | ⭐ In a real browser: opens over the app, 28 squares, closes again | `e2e/review.spec.ts` | ✅ |
+| V3C-51 | Escape closes it and focus returns to the button | same | ✅ |
+| V3C-52 | ⭐ The sheet has one button, and it closes it | same | ✅ |
+| V3C-53 | ⭐ A habit made three days ago shows 24 blank days and "Kept 0 of 4 days" | same | ✅ |
+| V3C-54 | At 375px the sheet fits, with no sideways scroll and a 44px close button | same | ✅ |
+| V3C-55 | ⭐ The review opens with no connection | same | ✅ |
 
 ---
 
@@ -142,8 +142,8 @@ passed quietly for a while and then failed for reasons that looked mysterious.
 | Suite | Count | Result |
 |---|---|---|
 | Unit (Vitest) | 304 | ✅ |
-| Browser (Playwright), 94 tests × 2 devices | 188 runs | ⏳ |
-| Database | 34 | ⏳ |
+| Browser (Playwright), 94 tests × 2 devices | 188 runs | ✅ CI run 35501225185 |
+| Database | 34 | ✅ |
 
 ---
 
