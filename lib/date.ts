@@ -67,3 +67,13 @@ export function weekdayInitial(key: DateKey): string {
 export function formatDateKeyLong(key: DateKey): string {
   return formatDayLabel(parseDateKey(key));
 }
+
+/** 0 for Monday … 6 for Sunday. Weeks start on Monday, like the day strip. */
+export function mondayIndex(key: DateKey): number {
+  return (parseDateKey(key).getDay() + 6) % 7;
+}
+
+/** e.g. "24 Aug" — the short form used either side of the review's date range. */
+export function formatDateKeyShort(key: DateKey): string {
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(parseDateKey(key));
+}

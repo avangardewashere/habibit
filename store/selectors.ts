@@ -1,4 +1,4 @@
-import { addDaysToKey } from '@/lib/date';
+import { addDaysToKey, dateKey, mondayIndex } from '@/lib/date';
 import { completionKey } from '@/lib/keys';
 import type { DateKey, Habit, HabibitState, Task } from '@/lib/types';
 
@@ -98,4 +98,71 @@ export function currentStreak(state: HabibitState, habitId: string, today: DateK
   }
 
   return streak;
+}
+
+// ---------------------------------------------------------------------------
+// The review: four weeks of history per habit (v3 Block C). Reading only —
+// nothing here changes anything, and the review has no way to tick a day.
+// ---------------------------------------------------------------------------
+
+/**
+ * The last `weeks` Monday-to-Sunday weeks, ending with the week `today` is in.
+ *
+ * Whole weeks rather than "the last 28 days" so every column is one weekday,
+ * which is what makes a calendar readable at a glance. The final row therefore
+ * runs past today when today isn't Sunday; those days are simply not yet.
+ */
+export function reviewWeeks(today: DateKey, weeks = 4): DateKey[][] {
+  const start = addDaysToKey(today, -mondayIndex(today) - 7 * (weeks - 1));
+  return Array.from({ length: weeks }, (_, week) =>
+    Array.from({ length: 7 }, (_, day) => addDaysToKey(start, week * 7 + day)),
+  );
+}
+
+/**
+ * What one square in the calendar means.
+ *
+ * `before` and `future` are both blank on screen, and they are different
+ * things: a habit you made last Tuesday didn't fail on the Monday before it.
+ */
+export type ReviewDay = 'done' | 'missed' | 'before' | 'future';
+
+export function reviewDay(state: HabibitState, habit: Habit, day: DateKey, today: DateKey): ReviewDay {
+  if (day > today) return 'future';
+  // The habit's first day, in the user's own timezone, like every other date here.
+  if (day < dateKey(new Date(habit.createdAt))) return 'before';
+  return isCompleted(state, habit.id, day) ? 'done' : 'missed';
+}
+
+export type HabitReview = {
+  days: { day: DateKey; state: ReviewDay }[][];
+  /** Days kept, out of the days this habit could have been kept. */
+  kept: number;
+  possible: number;
+  /** The longest run of kept days inside the window. */
+  best: number;
+};
+
+export function habitReview(state: HabibitState, habit: Habit, today: DateKey, weeks = 4): HabitReview {
+  const days = reviewWeeks(today, weeks).map((week) =>
+    week.map((day) => ({ day, state: reviewDay(state, habit, day, today) })),
+  );
+
+  let kept = 0;
+  let possible = 0;
+  let best = 0;
+  let run = 0;
+  for (const { state: dayState } of days.flat()) {
+    if (dayState === 'before' || dayState === 'future') continue;
+    possible += 1;
+    if (dayState === 'done') {
+      kept += 1;
+      run += 1;
+      best = Math.max(best, run);
+    } else {
+      run = 0;
+    }
+  }
+
+  return { days, kept, possible, best };
 }
