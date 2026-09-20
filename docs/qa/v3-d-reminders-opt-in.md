@@ -94,6 +94,8 @@ would promise a reminder that no server knows about.
 | V3D-14 | A push service that refuses is a failure, not a crash | same | ✅ |
 | V3D-15 | A build with no key has no reminders | same | ✅ 🔴 |
 | V3D-16 | Turning off hands the address back to the browser | same | ✅ |
+| V3D-17 | ⭐ A client that throws is handled, not left as an unhandled rejection (found by CI) | `lib/reminders/store.test.ts` | ✅ 🔴 |
+| V3D-18, 19 | With no account nothing is read or written; no row yet reads as "off" | same | ✅ |
 | V3D-20 | ⭐ The worker shows what the sender wrote, under one tag | `lib/offline/sw-push.test.ts` | ✅ 🔴 |
 | V3D-21 | ⭐ An unreadable or empty push still shows something (browsers require it) | same | ✅ 🔴 |
 | V3D-22…24 | ⭐ Tapping brings the app forward, opens it if closed, sends another page home | same | ✅ 🔴 |
@@ -131,9 +133,32 @@ Each guard was broken on purpose, the tests run, and the file restored before th
 | Tapping always opens a second window | V3D-22, V3D-24 |
 | Turning off leaves the device registered | V3D-35 |
 | A failed save is shown as success | **V3D-39 — added after this mutant survived** |
+| The store stops catching a client that throws | V3D-17 |
 
-That last row is the honest one: my first nine tests all passed with the failure path broken. The
-test came from the mutant, not the other way round.
+**The failed-save row is the honest one:** my first nine tests all passed with that path broken, so
+the switch would have said "on" while your account knew nothing about it. That test came from the
+mutant, not the other way round.
+
+---
+
+## ⚠️ What CI found
+
+**An unhandled promise rejection: `supabase.from is not a function`.** The account popup now reads
+your reminder setting as it opens. An older test stands in for Supabase with a bare object, which
+has no `from` — so the read threw inside an effect, where nothing catches it and nothing reaches
+the screen.
+
+Two fixes, because it was two problems:
+
+1. **The stand-in client** now answers `from`, reporting "no row yet", which is the honest answer
+   for a device that has never turned reminders on.
+2. **The app itself** wraps every one of these calls. Supabase reports most problems as an `error`
+   value, but not all of them, and a throw inside that effect would have been invisible — no
+   message, no failure, just nothing happening (V3D-17).
+
+**And a note on my own checking.** This *did* happen on my machine; I missed it because I filtered
+the test output for failed tests and the unhandled rejection isn't one. Vitest still passed 333
+tests and reported the error separately. I have been reading too narrow a slice of the output.
 
 ---
 
@@ -154,7 +179,7 @@ test came from the mutant, not the other way round.
 
 | Suite | Count | Result |
 |---|---|---|
-| Unit (Vitest) | 333 | ✅ |
+| Unit (Vitest) | 337 | ✅ |
 | Browser (Playwright), 96 tests × 2 devices | 192 runs | ⏳ |
 | Database | 42 | ⏳ |
 

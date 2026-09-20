@@ -18,21 +18,36 @@ export type ReminderSettings = {
   timezone: string;
 };
 
+/** Turns a throw into the same `{ data, error }` shape Supabase normally answers with. */
+async function attempt<T>(query: () => PromiseLike<{ data: T; error: unknown }>): Promise<{ data: T | null; error: unknown }> {
+  try {
+    return await query();
+  } catch (error) {
+    return { data: null, error: error ?? new Error('query failed') };
+  }
+}
+
 export const REMINDERS_OFF: ReminderSettings = {
   enabled: false,
   time: DEFAULT_REMINDER_TIME,
   timezone: 'UTC',
 };
 
-/** What the account holds, or `null` if it can't be read (signed out, no signal). */
+/**
+ * What the account holds, or `null` if it can't be read (signed out, no signal).
+ *
+ * Every call here is wrapped: these run inside an effect while the popup opens,
+ * and a throw there becomes an unhandled rejection rather than a message on
+ * screen. Supabase reports most problems as an `error` value, but not all of
+ * them (found by CI in v3 Block D).
+ */
 export async function loadReminderSettings(): Promise<ReminderSettings | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
 
-  const { data, error } = await supabase
-    .from('reminder_settings')
-    .select('enabled,local_time,timezone')
-    .maybeSingle();
+  const { data, error } = await attempt(() =>
+    supabase.from('reminder_settings').select('enabled,local_time,timezone').maybeSingle(),
+  );
   if (error) return null;
   // No row yet is not a failure: it means reminders have never been turned on.
   if (!data) return { ...REMINDERS_OFF, timezone: deviceTimezone() };
@@ -49,14 +64,16 @@ export async function saveReminderSettings(settings: ReminderSettings): Promise<
   const supabase = getSupabase();
   if (!supabase) return false;
 
-  const { error } = await supabase.from('reminder_settings').upsert(
-    {
-      enabled: settings.enabled,
-      local_time: settings.time,
-      timezone: settings.timezone,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id' },
+  const { error } = await attempt(() =>
+    supabase.from('reminder_settings').upsert(
+      {
+        enabled: settings.enabled,
+        local_time: settings.time,
+        timezone: settings.timezone,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' },
+    ),
   );
   return !error;
 }
@@ -69,13 +86,15 @@ export async function saveDevice(subscription: DeviceSubscription): Promise<bool
   const supabase = getSupabase();
   if (!supabase) return false;
 
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      endpoint: subscription.endpoint,
-      p256dh: subscription.p256dh,
-      auth: subscription.auth,
-    },
-    { onConflict: 'user_id,endpoint' },
+  const { error } = await attempt(() =>
+    supabase.from('push_subscriptions').upsert(
+      {
+        endpoint: subscription.endpoint,
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      },
+      { onConflict: 'user_id,endpoint' },
+    ),
   );
   return !error;
 }
@@ -85,6 +104,6 @@ export async function forgetDevice(endpoint: string): Promise<boolean> {
   const supabase = getSupabase();
   if (!supabase) return false;
 
-  const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
+  const { error } = await attempt(() => supabase.from('push_subscriptions').delete().eq('endpoint', endpoint));
   return !error;
 }

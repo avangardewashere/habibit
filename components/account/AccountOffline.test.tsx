@@ -18,7 +18,20 @@ vi.mock('@/store/SyncProvider', () => ({
   useSync: () => ({ ...sync, syncNow: async () => false, signOutAndClear: async () => false }),
 }));
 vi.mock('@/lib/auth/session', () => ({ useAccount: () => ({ status: 'signed-in', email: 'me@example.com' }) }));
-vi.mock('@/lib/supabase/client', () => ({ getSupabase: () => ({}) }));
+/*
+ * The panel reads the reminder setting when it opens (v3 Block D), so the
+ * stand-in client has to answer `from` as well. Returning "no row" is the
+ * honest answer for a device that has never turned reminders on.
+ */
+vi.mock('@/lib/supabase/client', () => ({
+  getSupabase: () => ({
+    from: () => ({
+      select: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+      upsert: async () => ({ error: null }),
+      delete: () => ({ eq: async () => ({ error: null }) }),
+    }),
+  }),
+}));
 
 import { AccountMenu } from './AccountMenu';
 import { AccountPanel } from './AccountPanel';
