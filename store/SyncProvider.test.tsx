@@ -16,7 +16,7 @@ import { SyncProvider, useSync } from './SyncProvider';
 
 const T = (minute: number) => new Date(Date.UTC(2026, 8, 17, 8, minute)).toISOString();
 const account: HabibitState = {
-  habits: [{ id: 'h-account', title: 'From account', createdAt: T(0), updatedAt: T(1), archivedAt: null, deletedAt: null }],
+  habits: [{ id: 'h-account', title: 'From account', createdAt: T(0), updatedAt: T(1), archivedAt: null, position: null, deletedAt: null }],
   tasks: [],
   completions: {},
 };
@@ -122,7 +122,7 @@ describe('SyncProvider', () => {
       JSON.stringify({
         version: 2,
         state: {
-          habits: [{ id: 'h-device', title: 'On device', createdAt: T(0), updatedAt: T(0), archivedAt: null, deletedAt: null }],
+          habits: [{ id: 'h-device', title: 'On device', createdAt: T(0), updatedAt: T(0), archivedAt: null, position: null, deletedAt: null }],
           tasks: [],
           completions: {},
         },

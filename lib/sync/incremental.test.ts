@@ -242,7 +242,7 @@ describe('V2E: two devices, both open', () => {
     // Another device's slow write lands now, but carries a server time 30 seconds
     // before the latest one the PC has already seen.
     account.writeLateHabit(
-      { id: 'late', title: 'Committed late', createdAt: account.now(), updatedAt: '2026-09-18T09:30:00.000Z', archivedAt: null, deletedAt: null },
+      { id: 'late', title: 'Committed late', createdAt: account.now(), updatedAt: '2026-09-18T09:30:00.000Z', archivedAt: null, position: null, deletedAt: null },
       30_000,
     );
     await pc.sync();
@@ -269,7 +269,7 @@ describe('V2E: two devices, both open', () => {
   it('V2E-19 · with no cursor yet, a small sync does the full combine (nothing is skipped)', async () => {
     const { account, phone } = twoDevices();
     await account.remote().push({
-      habits: [{ id: 'old', title: 'Already in account', createdAt: account.now(), updatedAt: account.now(), archivedAt: null, deletedAt: null }],
+      habits: [{ id: 'old', title: 'Already in account', createdAt: account.now(), updatedAt: account.now(), archivedAt: null, position: null, deletedAt: null }],
       tasks: [],
       completions: [],
     });

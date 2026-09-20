@@ -15,7 +15,7 @@ type Mode = 'idle' | 'menu' | 'editing';
  *
  * The whole title area is the toggle so it is comfortable to hit with a thumb.
  * Everything else a row can do lives behind a single `⋯` control, which opens
- * Rename and Delete in place. One button instead of a pencil *and* an `×` keeps
+ * Rename and Delete in place (and Archive, for habits). One button instead of a pencil *and* an `×` keeps
  * about 48px more room for the title on a phone (measured: 178px vs 130px).
  *
  * Deleting is still two taps — `⋯` then Delete — because a stray tap would
@@ -27,8 +27,10 @@ export function ItemRow({
   onToggle,
   onRemove,
   onRename,
+  onArchive,
   actionsLabel,
   renameLabel,
+  archiveLabel,
   deleteLabel,
   trailing,
   below,
@@ -39,9 +41,12 @@ export function ItemRow({
   onRemove: () => void;
   /** Receives the raw input; the reducer trims it and rejects an empty title. */
   onRename: (title: string) => void;
+  /** Habits only. Adds Archive to the menu, between Rename and Delete. */
+  onArchive?: () => void;
   /** Accessible name for the `⋯` button, e.g. "More actions for Drink water". */
   actionsLabel: string;
   renameLabel: string;
+  archiveLabel?: string;
   /** Should say what deleting costs, e.g. "…and its whole completion history". */
   deleteLabel: string;
   /** Sits between the title and the actions. Habits put their streak here. */
@@ -173,12 +178,17 @@ export function ItemRow({
             }
             onToggle();
           }}
-          className="flex min-h-14 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          /* min-w-0: without it a flex item never shrinks below its content, and a long
+             title pushed the menu pills out past the card (found by CI in v3 Block B). */
+          className="flex min-h-14 min-w-0 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
         >
           <CheckCircle checked={checked} />
           <span
             className={[
-              'min-w-0 break-words text-[15px] leading-snug transition-colors',
+              'min-w-0 text-[15px] leading-snug transition-colors',
+              // While the menu is open the pills take the room, so the title stays on
+              // one line and trails off rather than collapsing into a word column.
+              mode === 'menu' ? 'truncate' : 'break-words',
               checked ? 'text-ink-soft line-through' : 'text-ink',
             ].join(' ')}
           >
@@ -201,6 +211,16 @@ export function ItemRow({
             >
               Rename
             </button>
+            {onArchive && (
+              <button
+                type="button"
+                onClick={onArchive}
+                aria-label={archiveLabel}
+                className="min-h-11 touch-manipulation rounded-full border border-ink-soft bg-card px-3 text-xs font-extrabold text-ink transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Archive
+              </button>
+            )}
             <button
               type="button"
               onClick={onRemove}

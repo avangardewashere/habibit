@@ -1,3 +1,4 @@
+import { isOrderKey } from '@/lib/order';
 import type { Completion, CompletionKey, Habit, HabibitState, Task } from '@/lib/types';
 
 /*
@@ -18,6 +19,7 @@ export type HabitRow = {
   updated_at: string;
   archived_at: string | null;
   deleted_at: string | null;
+  position: string | null;
 };
 
 export type TaskRow = {
@@ -46,6 +48,7 @@ export const habitToRow = (h: Habit): HabitRow => ({
   updated_at: h.updatedAt,
   archived_at: h.archivedAt,
   deleted_at: h.deletedAt,
+  position: h.position,
 });
 
 export const rowToHabit = (r: HabitRow): Habit => ({
@@ -55,6 +58,8 @@ export const rowToHabit = (r: HabitRow): Habit => ({
   updatedAt: iso(r.updated_at),
   archivedAt: isoOrNull(r.archived_at),
   deletedAt: isoOrNull(r.deleted_at),
+  // Rows written by an older build have no position; anything malformed counts as none.
+  position: isOrderKey(r.position) ? r.position : null,
 });
 
 export const taskToRow = (t: Task): TaskRow => ({

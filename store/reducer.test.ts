@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { completionKey } from '@/lib/keys';
+import { keyBetween } from '@/lib/order';
 import type { HabibitState } from '@/lib/types';
 import { habibitReducer, initialState, stamp, type HabibitIntent } from './reducer';
 import { activeHabits, completedCount, isCompleted, sortedTasks } from './selectors';
@@ -65,6 +66,8 @@ describe('habits', () => {
         updatedAt: T(0),
         archivedAt: null,
         deletedAt: null,
+        // The first habit of an empty list gets the first key.
+        position: keyBetween(null, null),
       },
     ]);
   });

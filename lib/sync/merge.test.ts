@@ -5,7 +5,7 @@ import { changesToPush, hasChanges, mergeStates } from './merge';
 const T = (minute: number) => new Date(Date.UTC(2026, 8, 17, 8, minute)).toISOString();
 
 function habit(id: string, title: string, updated = 0, extra: Partial<Habit> = {}): Habit {
-  return { id, title, createdAt: T(0), updatedAt: T(updated), archivedAt: null, deletedAt: null, ...extra };
+  return { id, title, createdAt: T(0), updatedAt: T(updated), archivedAt: null, position: null, deletedAt: null, ...extra };
 }
 function task(id: string, title: string, updated = 0, extra: Partial<Task> = {}): Task {
   return { id, title, createdAt: T(0), updatedAt: T(updated), completedAt: null, deletedAt: null, ...extra };
@@ -160,6 +160,23 @@ describe('what needs uploading', () => {
   it('V2D-14 · nothing to upload when the account already matches', () => {
     const same = state({ habits: [habit('h', 'x')], tasks: [task('t', 'y')] });
     expect(hasChanges(changesToPush(same, structuredClone(same)))).toBe(false);
+  });
+
+  it('V3B-22 · ⭐ the same habit with its fields in a different order counts as unchanged', () => {
+    /*
+     * Found by CI in v3 Block B. "Has this changed?" used to compare the two
+     * copies as text, which depends on the order the fields sit in. A habit the
+     * reducer built and the same habit read back from the database can hold the
+     * same fields in a different order — and every sync would upload it again,
+     * forever.
+     */
+    const mine = habit('h', 'Drink water', 1, { position: 'V' });
+    const reordered = Object.fromEntries(
+      Object.entries(mine).reverse(),
+    ) as unknown as typeof mine;
+
+    expect(Object.keys(reordered)).not.toEqual(Object.keys(mine));
+    expect(hasChanges(changesToPush(state({ habits: [mine] }), state({ habits: [reordered] })))).toBe(false);
   });
 
   it('never uploads a completion for a habit that does not exist, which the database would reject', () => {

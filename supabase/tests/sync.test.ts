@@ -41,6 +41,7 @@ const habit = (title: string, updated = 0, id: string = crypto.randomUUID()): Ha
   createdAt: at(0),
   updatedAt: at(updated),
   archivedAt: null,
+  position: null,
   deletedAt: null,
 });
 
@@ -206,5 +207,52 @@ describe('V2E: "what changed since?" against the real database', () => {
     expect(next.state.habits).toEqual([]);
     expect(next.state.tasks.map((t) => t.title)).toEqual(['Call mum']);
     expect(Object.keys(next.state.completions)).toEqual([`${h.id}::2026-09-18`]);
+  });
+});
+
+describe('V3B: habit positions in the real database', () => {
+  it('V3B-40 · ⭐ a position is stored, and reaches another device', async () => {
+    const phone = await newAccount('position');
+    const h = { ...habit('Stretch', 1), position: 'aV' };
+    await syncOnce({ habits: [h], tasks: [], completions: {} }, phone.remote);
+
+    const pulled = await phone.remote.pullSince(null);
+    expect(pulled.state.habits.map((x) => x.position)).toEqual(['aV']);
+  });
+
+  it('V3B-41 · an upload from an older build (no position) leaves the stored position alone', async () => {
+    const { db, remote } = await newAccount('position-old-build');
+    const h = { ...habit('Read', 1), position: 'k' };
+    await remote.push({ habits: [h], tasks: [], completions: [] });
+
+    // What a device still on the previous build sends: the same row, renamed, without the column.
+    const { error } = await db.from('habits').upsert(
+      { id: h.id, title: 'Read 10 pages', created_at: h.createdAt, updated_at: at(2), archived_at: null, deleted_at: null },
+      { onConflict: 'user_id,id' },
+    );
+    expect(error).toBeNull();
+
+    const [stored] = (await remote.pullSince(null)).state.habits;
+    expect(stored).toMatchObject({ title: 'Read 10 pages', position: 'k' });
+  });
+
+  it('V3B-42 · a habit an older build created has no position, and reads back as none', async () => {
+    const { db, remote } = await newAccount('position-none');
+    const id = crypto.randomUUID();
+    const { error } = await db
+      .from('habits')
+      .insert({ id, title: 'Walk', created_at: at(0), updated_at: at(0), archived_at: null, deleted_at: null });
+    expect(error).toBeNull();
+
+    expect((await remote.pullSince(null)).state.habits).toEqual([{ ...habit('Walk', 0, id), position: null }]);
+  });
+
+  it('V3B-43 · the database refuses a malformed position', async () => {
+    const { db } = await newAccount('position-bad');
+    const row = { id: crypto.randomUUID(), title: 'Walk', created_at: at(0), updated_at: at(0), archived_at: null, deleted_at: null };
+    for (const position of ['a0', 'a-b', '', 'x'.repeat(257)]) {
+      const { error } = await db.from('habits').insert({ ...row, id: crypto.randomUUID(), position });
+      expect(error?.code, position).toBe('23514'); // check_violation
+    }
   });
 });

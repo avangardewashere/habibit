@@ -1,3 +1,4 @@
+import { isOrderKey } from './order';
 import type { Completion, CompletionKey, Habit, HabibitState, Task } from './types';
 
 /**
@@ -65,7 +66,9 @@ function isHabit(value: unknown): value is Habit {
     isNonEmptyString(value.createdAt) &&
     isNonEmptyString(value.updatedAt) &&
     isNullableString(value.archivedAt) &&
-    isNullableString(value.deletedAt)
+    isNullableString(value.deletedAt) &&
+    // Optional: data saved before v3 has no position at all (see withPositions).
+    (value.position === undefined || isNullableString(value.position))
   );
 }
 
@@ -155,6 +158,7 @@ export function migrateV1(state: StateV1): HabibitState {
       updatedAt: h.createdAt,
       archivedAt: h.archivedAt,
       deletedAt: null,
+      position: null,
     })),
     tasks: state.tasks.map((t) => ({
       id: t.id,
@@ -171,12 +175,27 @@ export function migrateV1(state: StateV1): HabibitState {
 }
 
 /**
+ * Fills in `position` where it is missing or unusable.
+ *
+ * v3 added the field *without* a new schema version, on purpose. Version numbers
+ * are refused when unknown, so bumping it would make a tab still running the
+ * previous build treat this data as corrupt. An older build instead ignores the
+ * extra field, and this build reads the older data as "no position yet".
+ */
+function withPositions(state: HabibitState): HabibitState {
+  return {
+    ...state,
+    habits: state.habits.map((h) => ({ ...h, position: isOrderKey(h.position) ? h.position : null })),
+  };
+}
+
+/**
  * Brings any stored envelope up to the current shape, one version at a time.
  * Unknown versions — including ones from a *newer* build — are refused rather
  * than guessed at, and end up in quarantine.
  */
 function migrate(version: unknown, state: unknown): HabibitState | null {
-  if (version === SCHEMA_VERSION) return isHabibitState(state) ? state : null;
+  if (version === SCHEMA_VERSION) return isHabibitState(state) ? withPositions(state) : null;
   if (version === 1) return isStateV1(state) ? migrateV1(state) : null;
   return null;
 }

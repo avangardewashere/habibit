@@ -12,6 +12,7 @@ const habit = (id: string, title: string, updated = 0): Habit => ({
   createdAt: T(0),
   updatedAt: T(updated),
   archivedAt: null,
+  position: null,
   deletedAt: null,
 });
 const empty = (): HabibitState => ({ habits: [], tasks: [], completions: {} });
@@ -118,6 +119,20 @@ describe('rows: the database shape', () => {
       deleted_at: '2026-09-17T16:06:00+08:00',
     };
     expect(rowToHabit(fromDatabase)).toEqual(h);
+  });
+
+  it('V3B-20 · a habit’s position goes to the database and back', () => {
+    const h = { ...habit('h', 'Drink water', 5), position: 'aV' };
+    expect(habitToRow(h).position).toBe('aV');
+    expect(rowToHabit(habitToRow(h))).toEqual(h);
+  });
+
+  it('V3B-21 · a row from an older build (no position) or with junk reads as “no position”', () => {
+    const h = habit('h', 'Drink water', 5);
+    const olderRow: Partial<ReturnType<typeof habitToRow>> = habitToRow(h);
+    delete olderRow.position;
+    expect(rowToHabit(olderRow as ReturnType<typeof habitToRow>).position).toBeNull();
+    expect(rowToHabit({ ...habitToRow(h), position: 'bad key!' }).position).toBeNull();
   });
 
   it('V2D-27 · a completion key splits into habit id and day, and back', () => {

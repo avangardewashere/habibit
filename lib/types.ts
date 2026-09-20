@@ -21,11 +21,18 @@ export type Habit = {
   createdAt: string;
   /** ISO instant of the last change to this row. Set on every write. */
   updatedAt: string;
-  /**
-   * Hides a habit while keeping its history. No UI sets it yet; the selectors
-   * already honour it, so archiving stays a small change whenever it is wanted.
-   */
+  /** Hides a habit while keeping its history. Archive and Unarchive are in its `⋯` menu. */
   archivedAt: string | null;
+  /**
+   * Where the habit sits in your list: a sort key from `lib/order.ts`, compared
+   * as plain text. `null` for habits from before v3 or from an older build,
+   * which keep their oldest-first order after every positioned habit until the
+   * first time you rearrange.
+   *
+   * Added without a new storage version on purpose: an older build reading data
+   * with this field simply ignores it (see `lib/storage.ts`).
+   */
+  position: string | null;
   /** Tombstone. Set by deleting; the row is kept so the delete can sync. */
   deletedAt: string | null;
 };

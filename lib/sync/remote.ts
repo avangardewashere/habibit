@@ -101,7 +101,7 @@ export function supabaseRemote(supabase: SupabaseClient): RemoteStore {
     async pullSince(since) {
       // Row Level Security already limits every query to the signed-in user.
       const [habits, tasks, completions] = await Promise.all([
-        readAll<HabitRow & WithServerTime>(supabase, 'habits', 'id,title,created_at,updated_at,archived_at,deleted_at', ['id'], since),
+        readAll<HabitRow & WithServerTime>(supabase, 'habits', 'id,title,created_at,updated_at,archived_at,deleted_at,position', ['id'], since),
         readAll<TaskRow & WithServerTime>(supabase, 'tasks', 'id,title,created_at,updated_at,completed_at,deleted_at', ['id'], since),
         readAll<CompletionRow & WithServerTime>(supabase, 'completions', 'habit_id,day,done,updated_at', ['habit_id', 'day'], since),
       ]);
