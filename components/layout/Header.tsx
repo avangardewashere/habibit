@@ -1,4 +1,5 @@
 import { AccountMenu } from '@/components/account/AccountMenu';
+import { ReviewButton } from '@/components/habit/ReviewButton';
 import { ThemeMenu } from '@/components/theme/ThemeMenu';
 import { TodayLabel } from './TodayLabel';
 
@@ -17,6 +18,7 @@ export function Header() {
         </h1>
         {/* `relative` anchors both popups to this group's right edge. */}
         <div className="relative flex shrink-0 items-center gap-2">
+          <ReviewButton />
           <AccountMenu />
           <ThemeMenu />
         </div>
