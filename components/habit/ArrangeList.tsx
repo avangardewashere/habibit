@@ -4,6 +4,7 @@ import {
   closestCenter,
   DndContext,
   KeyboardSensor,
+  MeasuringStrategy,
   PointerSensor,
   useSensor,
   useSensors,
@@ -69,6 +70,12 @@ export function ArrangeList({ habits, onMove }: { habits: Habit[]; onMove: Move 
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={onDragEnd}
+      /*
+       * Keep measuring the rows while a drag is under way. With the default —
+       * measure once, when the drag starts — a keyboard drag worked against stale
+       * positions and the first arrow press did nothing (found by CI in this block).
+       */
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       accessibility={{
         announcements,
         screenReaderInstructions: {
