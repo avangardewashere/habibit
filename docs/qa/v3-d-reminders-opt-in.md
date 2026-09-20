@@ -110,7 +110,7 @@ would promise a reminder that no server knows about.
 | V3D-45 | A device address has to be an https URL | same | ⏳ |
 | V3D-46 | The same device registering again updates its keys rather than duplicating | same | ⏳ |
 | V3D-47 | Deleting the account takes its reminders with it | same | ⏳ |
-| V3D-50 | ⭐ In a real browser: signed in and allowed, the popup offers a reminder, off to begin with | `e2e/reminders.spec.ts` | ⏳ |
+| V3D-50 | ⭐ In a real browser: signed in and allowed, the popup offers a reminder, off to begin with | `e2e/reminders-allowed.spec.ts` | ⏳ |
 | V3D-51 | ⭐ Signed out, there is no reminder to set | same | ⏳ |
 | V3D-52 | ⭐ In a real browser that blocks notifications: told how to undo it, and not offered a switch | same | ⏳ |
 
@@ -184,6 +184,13 @@ Two changes:
 
 1. **V3D-50 now asks for the permission**, and the blocked state gets its own test (V3D-52) rather
    than being the accidental default. Both are real states a person can be in.
+
+   Asking wasn't enough on its own, which took a second red run to find out: Playwright's default
+   browser is Chromium's **"headless shell"**, a stripped-down build with no notification machinery
+   in it, and it answers "denied" however the test asks (microsoft/playwright#23954). V3D-50 now
+   runs on the full browser (`channel: 'chromium'`), which is chosen per *file* rather than per
+   test — hence `e2e/reminders-allowed.spec.ts`. The other two stay where they are, since "denied"
+   is the state they want.
 2. **A wait that could never finish is now capped.** Looking at this I found a worse version of
    the same shape as the last fix: `navigator.serviceWorker.ready` is a promise that simply never
    settles when registration failed, which Firefox's private windows do. The popup would have said
