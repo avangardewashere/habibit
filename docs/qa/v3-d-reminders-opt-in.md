@@ -1,6 +1,6 @@
 # Habibit: v3 Block D, reminders — turning them on
 
-**Block:** D of 7 (v3) · **Date:** 2026-09-21 · **Status:** ⏳ green locally, browser and database tests running on CI
+**Block:** D of 7 (v3) · **Date:** 2026-09-21 · **Status:** ✅ all green on CI (run 35506139100), waiting for your sign-off
 
 > **The switch exists.** In the account popup: *Daily reminder — Turn on*, then a time. Turning it
 > on asks your browser for permission and registers this device with your account.
@@ -8,7 +8,7 @@
 > **Nothing is sent yet.** The server that actually wakes your phone is Block E. This block is the
 > half that has to exist first, and it can be checked on its own.
 
-**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken · ⏳ waiting on CI
+**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken
 
 ---
 
@@ -102,17 +102,17 @@ would promise a reminder that no server knows about.
 | V3D-21 | ⭐ An unreadable or empty push still shows something (browsers require it) | same | ✅ 🔴 |
 | V3D-22…24 | ⭐ Tapping brings the app forward, opens it if closed, sends another page home | same | ✅ 🔴 |
 | V3D-30…39 | The switch: off state, turning on, turning off, changing the time, and every refusal | `components/account/ReminderSettings.test.tsx` | ✅ 🔴 |
-| V3D-40 | ⭐ A signed-out visitor cannot read or write either table | `supabase/tests/reminders.test.ts` | ⏳ |
-| V3D-41 | ⭐ One person cannot see another's devices or settings | same | ⏳ |
-| V3D-42 | ⭐ One person cannot delete another's device, even knowing its address | same | ⏳ |
-| V3D-43 | The row belongs to whoever is signed in, whatever the app sends | same | ⏳ |
-| V3D-44 | A reminder time has to be a quarter hour | same | ⏳ |
-| V3D-45 | A device address has to be an https URL | same | ⏳ |
-| V3D-46 | The same device registering again updates its keys rather than duplicating | same | ⏳ |
-| V3D-47 | Deleting the account takes its reminders with it | same | ⏳ |
-| V3D-50 | ⭐ In a real browser: signed in and allowed, the popup offers a reminder, off to begin with | `e2e/reminders-allowed.spec.ts` | ⏳ |
-| V3D-51 | ⭐ Signed out, there is no reminder to set | same | ⏳ |
-| V3D-52 | ⭐ In a real browser that blocks notifications: told how to undo it, and not offered a switch | same | ⏳ |
+| V3D-40 | ⭐ A signed-out visitor cannot read or write either table | `supabase/tests/reminders.test.ts` | ✅ |
+| V3D-41 | ⭐ One person cannot see another's devices or settings | same | ✅ |
+| V3D-42 | ⭐ One person cannot delete another's device, even knowing its address | same | ✅ |
+| V3D-43 | The row belongs to whoever is signed in, whatever the app sends | same | ✅ |
+| V3D-44 | A reminder time has to be a quarter hour | same | ✅ |
+| V3D-45 | A device address has to be an https URL | same | ✅ |
+| V3D-46 | The same device registering again updates its keys rather than duplicating | same | ✅ |
+| V3D-47 | Deleting the account takes its reminders with it | same | ✅ |
+| V3D-50 | ⭐ In a real browser: signed in and allowed, the popup offers a reminder, off to begin with | `e2e/reminders-allowed.spec.ts` | ✅ |
+| V3D-51 | ⭐ Signed out, there is no reminder to set | same | ✅ |
+| V3D-52 | ⭐ In a real browser that blocks notifications: told how to undo it, and not offered a switch | same | ✅ |
 
 **The service worker's push rules are tested directly.** `public/sw.js` can't be imported — it isn't
 a module — so the test reads the real file and runs it against a stand-in for the worker, then fires
@@ -220,8 +220,12 @@ Two changes:
 | Suite | Count | Result |
 |---|---|---|
 | Unit (Vitest) | 339 | ✅ |
-| Browser (Playwright), 97 tests × 2 devices | 194 runs | ⏳ |
-| Database | 42 | ⏳ |
+| Browser (Playwright), 97 tests × 2 devices | 194 runs | ✅ |
+| Database | 42 | ✅ |
+
+All three suites green on CI run 35506139100. It took three rounds: the first found a real bug
+(a Supabase call that threw inside an effect), the second and third were my test being wrong about
+what a browser under automation will do.
 
 ---
 
