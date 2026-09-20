@@ -1,7 +1,9 @@
 import { completionKey } from '@/lib/keys';
 import { newId } from '@/lib/id';
+import { evenKeys, keyBetween, LONGEST_KEY } from '@/lib/order';
 import { mergeStates } from '@/lib/sync/merge';
 import type { DateKey, HabibitState } from '@/lib/types';
+import { activeHabits, liveHabits } from './selectors';
 
 export const initialState: HabibitState = {
   habits: [],
@@ -24,6 +26,14 @@ export type HabibitIntent =
    * reason ids exist at all.
    */
   | { type: 'RENAME_HABIT'; id: string; title: string }
+  /**
+   * Puts a habit at `toIndex` in the list you see (archived habits aren't
+   * counted). Normally rewrites only that habit's position; see `moveHabit`.
+   */
+  | { type: 'MOVE_HABIT'; id: string; toIndex: number }
+  /** Hides a habit from today's list. Its history and streak are kept. */
+  | { type: 'ARCHIVE_HABIT'; id: string }
+  | { type: 'UNARCHIVE_HABIT'; id: string }
   | { type: 'TOGGLE_COMPLETION'; habitId: string; dateKey: DateKey }
   | { type: 'ADD_TASK'; title: string }
   | { type: 'TOGGLE_TASK'; id: string }
@@ -74,6 +84,64 @@ export function stamp(
 }
 
 /**
+ * Moves one habit to `to` among the active habits.
+ *
+ * The usual case writes a single new key between its new neighbours, so only
+ * this habit's row changes and a reorder on another device can't be scrambled
+ * by it. The whole list is given fresh keys instead, once, when that isn't
+ * possible:
+ *
+ * - some habit has no position yet (made before v3, or by an older build);
+ * - two neighbours share a key (two devices inserted at the same spot at once);
+ * - the new key would be unreasonably long after many moves into one gap.
+ *
+ * Archived habits keep their place relative to the others throughout, so
+ * unarchiving puts a habit back roughly where it was.
+ */
+function moveHabit(state: HabibitState, id: string, to: number, at: string): HabibitState {
+  const others = activeHabits(state).filter((h) => h.id !== id);
+  const before = others[to - 1]?.position ?? null;
+  const after = others[to]?.position ?? null;
+
+  const everyHabitHasKey = liveHabits(state).every((h) => h.position !== null);
+  if (everyHabitHasKey && (before === null || after === null || before < after)) {
+    const key = keyBetween(before, after);
+    if (key.length <= LONGEST_KEY) {
+      return {
+        ...state,
+        habits: state.habits.map((h) => (h.id === id ? { ...h, position: key, updatedAt: at } : h)),
+      };
+    }
+  }
+
+  // Fresh keys for every live habit, in the new order.
+  const moving = state.habits.find((h) => h.id === id)!;
+  const order = liveHabits(state).filter((h) => h.id !== id);
+  const anchor = others[to];
+  order.splice(anchor ? order.indexOf(anchor) : order.indexOf(others[to - 1]) + 1, 0, moving);
+
+  const fresh = evenKeys(order.length);
+  const keys = new Map(order.map((h, i) => [h.id, fresh[i]]));
+  return {
+    ...state,
+    habits: state.habits.map((h) => {
+      const position = keys.get(h.id);
+      return position === undefined || position === h.position ? h : { ...h, position, updatedAt: at };
+    }),
+  };
+}
+
+/** Sets `archivedAt` on a live habit, if it isn't already in that state. */
+function setArchived(state: HabibitState, id: string, archivedAt: string | null, at: string): HabibitState {
+  const habit = state.habits.find((h) => h.id === id && h.deletedAt === null);
+  if (!habit || (habit.archivedAt === null) === (archivedAt === null)) return state;
+  return {
+    ...state,
+    habits: state.habits.map((h) => (h.id === id ? { ...h, archivedAt, updatedAt: at } : h)),
+  };
+}
+
+/**
  * Pure. Never mutates `state`, never reads the clock, never makes ids.
  *
  * Every write sets `updatedAt` to the action's time. Deleted records are kept
@@ -96,6 +164,12 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
     case 'ADD_HABIT': {
       const title = action.title.trim();
       if (!title) return state;
+      // New habits go at the end. While older habits still have no position,
+      // neither does a new one: oldest-first already puts it last.
+      const live = liveHabits(state);
+      const position = live.every((h) => h.position !== null)
+        ? keyBetween(live.at(-1)?.position ?? null, null)
+        : null;
       return {
         ...state,
         habits: [
@@ -107,10 +181,26 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
             updatedAt: action.at,
             archivedAt: null,
             deletedAt: null,
+            position,
           },
         ],
       };
     }
+
+    case 'MOVE_HABIT': {
+      const active = activeHabits(state);
+      const from = active.findIndex((h) => h.id === action.id);
+      if (from === -1 || !Number.isFinite(action.toIndex)) return state;
+      const to = Math.max(0, Math.min(active.length - 1, Math.trunc(action.toIndex)));
+      if (to === from) return state;
+      return moveHabit(state, action.id, to, action.at);
+    }
+
+    case 'ARCHIVE_HABIT':
+      return setArchived(state, action.id, action.at, action.at);
+
+    case 'UNARCHIVE_HABIT':
+      return setArchived(state, action.id, null, action.at);
 
     case 'REMOVE_HABIT': {
       if (!state.habits.some((h) => h.id === action.id && h.deletedAt === null)) return state;

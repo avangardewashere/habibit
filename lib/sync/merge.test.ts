@@ -5,7 +5,7 @@ import { changesToPush, hasChanges, mergeStates } from './merge';
 const T = (minute: number) => new Date(Date.UTC(2026, 8, 17, 8, minute)).toISOString();
 
 function habit(id: string, title: string, updated = 0, extra: Partial<Habit> = {}): Habit {
-  return { id, title, createdAt: T(0), updatedAt: T(updated), archivedAt: null, deletedAt: null, ...extra };
+  return { id, title, createdAt: T(0), updatedAt: T(updated), archivedAt: null, position: null, deletedAt: null, ...extra };
 }
 function task(id: string, title: string, updated = 0, extra: Partial<Task> = {}): Task {
   return { id, title, createdAt: T(0), updatedAt: T(updated), completedAt: null, deletedAt: null, ...extra };

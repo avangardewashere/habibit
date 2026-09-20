@@ -59,7 +59,7 @@ async function openApp(remote: RemoteStore) {
 async function otherDeviceAdds(account: ReturnType<typeof fakeAccount>, title: string) {
   const now = new Date().toISOString();
   await account.remote().push({
-    habits: [{ id: `other-${title}`, title, createdAt: now, updatedAt: now, archivedAt: null, deletedAt: null }],
+    habits: [{ id: `other-${title}`, title, createdAt: now, updatedAt: now, archivedAt: null, position: null, deletedAt: null }],
     tasks: [],
     completions: [],
   });

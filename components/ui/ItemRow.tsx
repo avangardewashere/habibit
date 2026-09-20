@@ -15,7 +15,7 @@ type Mode = 'idle' | 'menu' | 'editing';
  *
  * The whole title area is the toggle so it is comfortable to hit with a thumb.
  * Everything else a row can do lives behind a single `⋯` control, which opens
- * Rename and Delete in place. One button instead of a pencil *and* an `×` keeps
+ * Rename and Delete in place (and Archive, for habits). One button instead of a pencil *and* an `×` keeps
  * about 48px more room for the title on a phone (measured: 178px vs 130px).
  *
  * Deleting is still two taps — `⋯` then Delete — because a stray tap would
@@ -27,8 +27,10 @@ export function ItemRow({
   onToggle,
   onRemove,
   onRename,
+  onArchive,
   actionsLabel,
   renameLabel,
+  archiveLabel,
   deleteLabel,
   trailing,
   below,
@@ -39,9 +41,12 @@ export function ItemRow({
   onRemove: () => void;
   /** Receives the raw input; the reducer trims it and rejects an empty title. */
   onRename: (title: string) => void;
+  /** Habits only. Adds Archive to the menu, between Rename and Delete. */
+  onArchive?: () => void;
   /** Accessible name for the `⋯` button, e.g. "More actions for Drink water". */
   actionsLabel: string;
   renameLabel: string;
+  archiveLabel?: string;
   /** Should say what deleting costs, e.g. "…and its whole completion history". */
   deleteLabel: string;
   /** Sits between the title and the actions. Habits put their streak here. */
@@ -201,6 +206,16 @@ export function ItemRow({
             >
               Rename
             </button>
+            {onArchive && (
+              <button
+                type="button"
+                onClick={onArchive}
+                aria-label={archiveLabel}
+                className="min-h-11 touch-manipulation rounded-full border border-ink-soft bg-card px-3 text-xs font-extrabold text-ink transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Archive
+              </button>
+            )}
             <button
               type="button"
               onClick={onRemove}

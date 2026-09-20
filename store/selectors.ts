@@ -7,9 +7,36 @@ import type { DateKey, Habit, HabibitState, Task } from '@/lib/types';
  * rows only so the delete can sync; to the UI they do not exist.
  */
 
-/** Habits that are neither deleted nor archived, oldest first. */
+/**
+ * The order habits are shown in, identical on every device.
+ *
+ * By `position` (compared as plain text, see lib/order.ts), then habits with no
+ * position yet, oldest first — which is exactly the order before v3, so nobody's
+ * list moves on the day this ships. Id breaks any remaining tie: two devices can
+ * make the same key when both insert between the same two habits at once.
+ */
+export function compareHabits(a: Habit, b: Habit): number {
+  if (a.position !== b.position) {
+    if (a.position === null) return 1;
+    if (b.position === null) return -1;
+    return a.position < b.position ? -1 : 1;
+  }
+  return Date.parse(a.createdAt) - Date.parse(b.createdAt) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+}
+
+/** Every habit that isn't deleted, archived ones included, in display order. */
+export function liveHabits(state: HabibitState): Habit[] {
+  return state.habits.filter((h) => h.deletedAt === null).sort(compareHabits);
+}
+
+/** Habits that are neither deleted nor archived, in display order. */
 export function activeHabits(state: HabibitState): Habit[] {
-  return state.habits.filter((h) => h.deletedAt === null && h.archivedAt === null);
+  return liveHabits(state).filter((h) => h.archivedAt === null);
+}
+
+/** Archived habits, in the same order they had in the list. */
+export function archivedHabits(state: HabibitState): Habit[] {
+  return liveHabits(state).filter((h) => h.archivedAt !== null);
 }
 
 /** Tasks that have not been deleted, in the order they were added. */

@@ -54,6 +54,7 @@ const sample: HabibitState = {
       createdAt: '2026-09-08T00:00:00.000Z',
       updatedAt: '2026-09-08T00:00:00.000Z',
       archivedAt: null,
+      position: null,
       deletedAt: null,
     },
     {
@@ -62,6 +63,7 @@ const sample: HabibitState = {
       createdAt: '2026-09-08T00:00:00.000Z',
       updatedAt: '2026-09-09T00:00:00.000Z',
       archivedAt: null,
+      position: null,
       deletedAt: '2026-09-09T00:00:00.000Z',
     },
   ],
@@ -307,5 +309,44 @@ describe('upgrading real v1 data to v2', () => {
 
   it('refuses v2-shaped data that claims to be version 1', () => {
     expect(loadRaw(JSON.stringify({ version: 1, state: sample })).state).toBeNull();
+  });
+});
+
+describe('habit positions (v3)', () => {
+  it('V3B-19 · ⭐ data saved before v3 loads, with no position, without a new storage version', () => {
+    // Why no version bump: a tab still running the previous build refuses unknown
+    // versions, so v3 data must stay readable as version 2.
+    expect(SCHEMA_VERSION).toBe(2);
+
+    const saved = {
+      ...sample,
+      habits: sample.habits.map((h) => {
+        const saved: Partial<typeof h> = { ...h };
+        delete saved.position;
+        return saved;
+      }),
+    };
+    const { state, store } = loadRaw(JSON.stringify({ version: 2, state: saved }));
+
+    expect(state).not.toBeNull();
+    expect(state!.habits.every((h) => h.position === null)).toBe(true);
+    expect(store.getItem(CORRUPT_KEY)).toBeNull();
+  });
+
+  it('keeps a good position, and reads a malformed one as none', () => {
+    const saved = {
+      ...sample,
+      habits: [
+        { ...sample.habits[0], position: 'V' },
+        { ...sample.habits[1], position: 'not a key!' },
+      ],
+    };
+    const { state } = loadRaw(JSON.stringify({ version: 2, state: saved }));
+    expect(state!.habits.map((h) => h.position)).toEqual(['V', null]);
+  });
+
+  it('still refuses a position of the wrong type', () => {
+    const saved = { ...sample, habits: [{ ...sample.habits[0], position: 42 }] };
+    expect(loadRaw(JSON.stringify({ version: 2, state: saved })).state).toBeNull();
   });
 });
