@@ -7,6 +7,7 @@ import { ItemRow } from '@/components/ui/ItemRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useToday } from '@/lib/useToday';
 import { useHabibit } from '@/store/HabibitProvider';
+import { useUndo } from '@/store/UndoProvider';
 import {
   activeHabits,
   archivedHabits,
@@ -28,6 +29,7 @@ import { WeekdayHeader } from './WeekdayHeader';
  */
 export function HabitSection() {
   const { state, dispatch } = useHabibit();
+  const { offer } = useUndo();
   const today = useToday();
   const [arrangingRequested, setArranging] = useState(false);
 
@@ -102,7 +104,10 @@ export function HabitSection() {
                   onToggle={() =>
                     today && dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: today })
                   }
-                  onRemove={() => dispatch({ type: 'REMOVE_HABIT', id: habit.id })}
+                  onRemove={() => {
+                    dispatch({ type: 'REMOVE_HABIT', id: habit.id });
+                    offer(`Deleted “${habit.title}”`, () => dispatch({ type: 'RESTORE_HABIT', id: habit.id }));
+                  }}
                   onRename={(title) => dispatch({ type: 'RENAME_HABIT', id: habit.id, title })}
                   onArchive={() => dispatch({ type: 'ARCHIVE_HABIT', id: habit.id })}
                   actionsLabel={`More actions for ${habit.title}`}

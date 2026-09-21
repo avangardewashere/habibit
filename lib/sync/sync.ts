@@ -68,6 +68,7 @@ export function touchedBy(action: HabibitAction): OutboxKey | null {
   switch (action.type) {
     case 'ADD_HABIT':
     case 'REMOVE_HABIT':
+    case 'RESTORE_HABIT':
     case 'RENAME_HABIT':
     case 'MOVE_HABIT':
     case 'ARCHIVE_HABIT':
@@ -78,6 +79,7 @@ export function touchedBy(action: HabibitAction): OutboxKey | null {
     case 'ADD_TASK':
     case 'TOGGLE_TASK':
     case 'REMOVE_TASK':
+    case 'RESTORE_TASK':
     case 'RENAME_TASK':
       return `task:${action.id}`;
     // Not edits someone made on this device: they arrive from storage, from
