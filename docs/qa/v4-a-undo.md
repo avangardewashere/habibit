@@ -1,6 +1,6 @@
 # Habibit: v4 Block A, undo
 
-**Block:** A of 6 (v4) · **Date:** 2026-09-22 · **Status:** ⏳ CI running
+**Block:** A of 6 (v4) · **Date:** 2026-09-22 · **Status:** ✅ all green on CI (run 35666025491), first try — waiting for your sign-off
 
 > **A delete can be taken back.** After deleting a habit or a task, a bar at the bottom says
 > *Deleted "Water"* and offers **Undo** for six seconds. Tap it and the habit is back exactly as it
@@ -8,7 +8,7 @@
 >
 > Building it turned up a v3 bug that is live right now, and it's fixed here too.
 
-**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken · ⏳ on CI
+**Legend:** ✅ pass · 🔴 **proven**: shown to fail when the guard was deliberately broken
 
 ---
 
@@ -116,19 +116,19 @@ still cover it, unchanged.
 | V4A-20 | ⭐ An undo is sent to the account | same | ✅ 🔴 |
 | V4A-21 | ⭐ Reorder, archive and unarchive are sent to the account (the v3 gap) | same | ✅ 🔴 |
 | V4A-22 | Things that aren't edits made here are still not sent | same | ✅ |
-| V4A-30…37 | The bar: appears, undoes, leaves after 6s, replaces, fresh 6s, pauses on focus and hover, 44px | `store/UndoProvider.test.tsx` | ⏳ |
+| V4A-30…37 | The bar: appears, undoes, leaves after 6s, replaces, fresh 6s, pauses on focus and hover, 44px | `store/UndoProvider.test.tsx` | ✅ |
 | — | Text on the undo bar reaches 4.5:1 in both themes | `lib/contrast.test.ts` | ✅ |
-| V4A-50 | ⭐ In a real browser: a deleted habit comes back ticked, and stays back after a reload | `e2e/undo.spec.ts` | ⏳ |
-| V4A-51 | ⭐ Left alone, the bar goes after six seconds and the delete stands | same | ⏳ |
-| V4A-52 | ⭐ A deleted task can be taken back | same | ⏳ |
-| V4A-53 | The bar causes no sideways scroll on a phone, and Undo is 44px | same | ⏳ |
+| V4A-50 | ⭐ In a real browser: a deleted habit comes back ticked, and stays back after a reload | `e2e/undo.spec.ts` | ✅ |
+| V4A-51 | ⭐ Left alone, the bar goes after six seconds and the delete stands | same | ✅ |
+| V4A-52 | ⭐ A deleted task can be taken back | same | ✅ |
+| V4A-53 | The bar causes no sideways scroll on a phone, and Undo is 44px | same | ✅ |
 
-### Why some rows are ⏳ rather than ✅
+### A note on V4A-30…37
 
-The bar's own tests (V4A-30…37) **could not start on this machine**: it has 1.4 GB of 16 GB free,
-and the test workers time out before loading. A run that looked like "27 passed" turned out to be the
-contrast file only — the undo file never ran. They are left as ⏳ until CI runs them, rather than
-counted from a run that didn't happen.
+The bar's own tests **could not start on this machine**: it had 1.4 GB of 16 GB free, and the test
+workers timed out before loading. A run that looked like "27 passed" turned out to be the contrast
+file only — the undo file never ran. They were left unticked until CI ran them, rather than counted
+from a run that didn't happen. **CI ran all 8, and they pass.**
 
 ---
 
@@ -154,3 +154,15 @@ byte-identical to the originals afterwards.
   the bar themselves; a screen reader announces it. Worth revisiting; not in this block.
 - **Only the latest delete can be undone.** Deleting two things in a row makes the first final.
 - **The window is six seconds, not "until you leave the page".** Your choice, and the usual one.
+
+---
+
+## Totals
+
+| Suite | Count | Result |
+|---|---|---|
+| Unit (Vitest) | 411 | ✅ |
+| Database | 64 | ✅ |
+| Browser (Playwright), 107 tests × 2 devices | 214 runs | ✅ |
+
+All green on CI run 35666025491, first try, with no unhandled errors.
