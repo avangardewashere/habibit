@@ -155,6 +155,11 @@ fine for you and hopeless for anyone else.
   existing deploy will not pick them up.
 - ☐ **The Supabase secret key and the VAPID private key never go here.** Vercel holds only what is
   already public in every visitor's browser.
+- **If either Supabase setting is missing, empty, misnamed or scoped away from Production, the
+  production build now fails** and its log says which one, and why (`lib/env/production.ts`).
+  Before that check existed, each of those mistakes produced a build that succeeded, deployed, and
+  quietly served a site with no account button. The site already live is unaffected by a failed
+  build: Vercel does not promote it.
 
 ### 5. Reminders
 
