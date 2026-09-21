@@ -134,6 +134,9 @@ for (const [themeName, t] of [
       ['secondary text on a card', t.inkSoft, t.card],
       ['the progress badge', t.badgeFg, t.badgeBg],
       ['the all-done badge', t.doneFg, t.doneBg],
+      // The Undo bar is the page's colours inverted. Its button deliberately uses
+      // this pair too, not accent-on-ink, which measured 2.08:1 in dark mode.
+      ['text on the undo bar', t.surface, t.ink],
     ])('%s reaches 4.5:1', (_label, fg, bg) => {
       expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5);
     });

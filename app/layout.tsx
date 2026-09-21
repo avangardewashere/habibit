@@ -6,6 +6,7 @@ import { ThemeEffect } from '@/components/theme/ThemeEffect';
 import { THEME_COLOURS, THEME_INIT_SCRIPT } from '@/lib/theme';
 import { HabibitProvider } from '@/store/HabibitProvider';
 import { SyncProvider } from '@/store/SyncProvider';
+import { UndoProvider } from '@/store/UndoProvider';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -69,7 +70,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         {/* Keeps the status bar in step with the stored theme. Renders nothing. */}
         <ThemeEffect />
         <HabibitProvider>
-          <SyncProvider>{children}</SyncProvider>
+          <SyncProvider>
+            <UndoProvider>{children}</UndoProvider>
+          </SyncProvider>
         </HabibitProvider>
       </body>
     </html>

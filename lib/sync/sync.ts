@@ -54,21 +54,47 @@ export type OutboxKey = `habit:${string}` | `task:${string}` | `completion:${Com
 
 /** Which record an action changed. Every write the app can make is listed. */
 export function touchedBy(action: HabibitAction): OutboxKey | null {
+  /*
+   * Deliberately no `default`. Every action is named here, so a new one that
+   * isn't is a **type error**, not a silent gap.
+   *
+   * That gap is not hypothetical. Reorder, archive and unarchive (v3 Block B)
+   * were added to the reducer but not here, so they fell through a `default`
+   * that said "not an edit" — and never entered the sync queue. They still
+   * reached the account eventually, through the full combine when the app next
+   * opened, but not live: archive on a phone left open, and the desktop never
+   * heard. Found while adding undo, which would have fallen straight in too.
+   */
   switch (action.type) {
     case 'ADD_HABIT':
     case 'REMOVE_HABIT':
+    case 'RESTORE_HABIT':
     case 'RENAME_HABIT':
+    case 'MOVE_HABIT':
+    case 'ARCHIVE_HABIT':
+    case 'UNARCHIVE_HABIT':
       return `habit:${action.id}`;
     case 'TOGGLE_COMPLETION':
       return `completion:${action.habitId}::${action.dateKey}`;
     case 'ADD_TASK':
     case 'TOGGLE_TASK':
     case 'REMOVE_TASK':
+    case 'RESTORE_TASK':
     case 'RENAME_TASK':
       return `task:${action.id}`;
-    default:
-      // HYDRATE, MERGE_REMOTE and CLEAR_DEVICE are not edits someone made here.
+    // Not edits someone made on this device: they arrive from storage, from
+    // the account, or empty it on sign-out.
+    case 'HYDRATE':
+    case 'MERGE_REMOTE':
+    case 'CLEAR_DEVICE':
       return null;
+    default: {
+      // Reaching here means an action type above is missing. `action` is
+      // `never` only when every case is handled, so this line won't compile
+      // until the new one is added.
+      const unhandled: never = action;
+      return unhandled;
+    }
   }
 }
 

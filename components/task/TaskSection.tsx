@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ItemRow } from '@/components/ui/ItemRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useHabibit } from '@/store/HabibitProvider';
+import { useUndo } from '@/store/UndoProvider';
 import { openTasks, sortedTasks } from '@/store/selectors';
 
 /**
@@ -13,6 +14,7 @@ import { openTasks, sortedTasks } from '@/store/selectors';
  */
 export function TaskSection() {
   const { state, dispatch } = useHabibit();
+  const { offer } = useUndo();
 
   const tasks = sortedTasks(state);
   const open = openTasks(state).length;
@@ -44,7 +46,10 @@ export function TaskSection() {
                 title={task.title}
                 checked={task.completedAt !== null}
                 onToggle={() => dispatch({ type: 'TOGGLE_TASK', id: task.id })}
-                onRemove={() => dispatch({ type: 'REMOVE_TASK', id: task.id })}
+                onRemove={() => {
+                  dispatch({ type: 'REMOVE_TASK', id: task.id });
+                  offer(`Deleted “${task.title}”`, () => dispatch({ type: 'RESTORE_TASK', id: task.id }));
+                }}
                 onRename={(title) => dispatch({ type: 'RENAME_TASK', id: task.id, title })}
                 actionsLabel={`More actions for ${task.title}`}
                 renameLabel={`Rename task: ${task.title}`}
