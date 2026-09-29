@@ -1,6 +1,6 @@
 # Habibit: v4 Block B, schedules — the data
 
-**Block:** B of 6 (v4) · **Date:** 2026-09-30 · **Status:** ✅ all green locally — waiting for CI and your sign-off
+**Block:** B of 6 (v4) · **Date:** 2026-09-30 · **Status:** ✅ all green on CI (run 36638590165), first try — waiting for your sign-off
 
 > **A habit can now say how often it is meant to be kept.** In its `⋯` menu there is **Days**,
 > which opens *How often?*: every day, certain days, or a few times a week. The choice is stored,
