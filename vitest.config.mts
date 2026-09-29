@@ -13,6 +13,12 @@ export default defineConfig({
       // so it runs here too (supabase/functions/send-reminders/reminders.ts).
       'supabase/functions/**/*.test.ts',
     ],
+    /*
+     * The daylight-saving tests need a timezone that actually has it, so they
+     * run under vitest.dst.config.mts instead (`npm run test:dst`). Running
+     * them here too would pass while proving nothing.
+     */
+    exclude: ['**/node_modules/**', '**/*.dst.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
     /*
      * Pin the suite to UTC+8 so the local-vs-UTC date assertions are meaningful

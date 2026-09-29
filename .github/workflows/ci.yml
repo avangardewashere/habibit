@@ -38,6 +38,12 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # The same date code again, in a timezone whose clocks change. The main
+      # suite is pinned to UTC+8, which has no daylight saving, so these cases
+      # can only be proved in a run of their own (vitest.dst.config.mts).
+      - name: Daylight-saving tests
+        run: npm run test:dst
+
       # A private Supabase inside the CI machine's Docker, built from
       # supabase/migrations. No test ever touches the real project.
       - name: Start local Supabase
