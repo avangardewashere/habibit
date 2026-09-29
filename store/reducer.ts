@@ -1,6 +1,7 @@
 import { completionKey } from '@/lib/keys';
 import { newId } from '@/lib/id';
 import { evenKeys, keyBetween, LONGEST_KEY } from '@/lib/order';
+import { formatSchedule, type Schedule } from '@/lib/schedule';
 import { mergeStates } from '@/lib/sync/merge';
 import type { DateKey, HabibitState } from '@/lib/types';
 import { activeHabits, liveHabits } from './selectors';
@@ -36,6 +37,12 @@ export type HabibitIntent =
    * counted). Normally rewrites only that habit's position; see `moveHabit`.
    */
   | { type: 'MOVE_HABIT'; id: string; toIndex: number }
+  /**
+   * How often the habit is meant to be kept (v4 Block B). Stored as the text
+   * form from `lib/schedule.ts`; every day is stored as `null`, so a habit made
+   * before v4 and one set back to every day are the same row.
+   */
+  | { type: 'SET_SCHEDULE'; id: string; schedule: Schedule }
   /** Hides a habit from today's list. Its history and streak are kept. */
   | { type: 'ARCHIVE_HABIT'; id: string }
   | { type: 'UNARCHIVE_HABIT'; id: string }
@@ -210,6 +217,8 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
             archivedAt: null,
             deletedAt: null,
             position,
+            // Every day until you say otherwise.
+            schedule: null,
           },
         ],
       };
@@ -222,6 +231,19 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
       const to = Math.max(0, Math.min(active.length - 1, Math.trunc(action.toIndex)));
       if (to === from) return state;
       return moveHabit(state, action.id, to, action.at);
+    }
+
+    case 'SET_SCHEDULE': {
+      const habit = state.habits.find((h) => h.id === action.id && h.deletedAt === null);
+      if (!habit) return state;
+      const schedule = formatSchedule(action.schedule);
+      // Choosing what it already is must not count as an edit: it would bump
+      // updatedAt, upload the row, and beat a real change made elsewhere.
+      if (habit.schedule === schedule) return state;
+      return {
+        ...state,
+        habits: state.habits.map((h) => (h.id === action.id ? { ...h, schedule, updatedAt: action.at } : h)),
+      };
     }
 
     case 'ARCHIVE_HABIT':

@@ -68,6 +68,8 @@ describe('habits', () => {
         deletedAt: null,
         // The first habit of an empty list gets the first key.
         position: keyBetween(null, null),
+        // Every day until you say otherwise (v4 Block B).
+        schedule: null,
       },
     ]);
   });

@@ -16,6 +16,7 @@ function withCompletions(days: DateKey[], habitId = 'h1'): HabibitState {
         updatedAt: '2026-01-01T00:00:00.000Z',
         archivedAt: null,
         position: null,
+        schedule: null,
         deletedAt: null,
       },
     ],
@@ -117,6 +118,7 @@ describe('currentStreak', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
       archivedAt: null,
       position: null,
+      schedule: null,
       deletedAt: null,
     });
 
@@ -150,8 +152,8 @@ describe('tombstones are invisible', () => {
   it('hides deleted habits, and archived ones too', () => {
     const state = withCompletions([TODAY]);
     state.habits.push(
-      { id: 'gone', title: 'Deleted', createdAt: at, updatedAt: at, archivedAt: null, position: null, deletedAt: at },
-      { id: 'shelf', title: 'Archived', createdAt: at, updatedAt: at, archivedAt: at, position: null, deletedAt: null },
+      { id: 'gone', title: 'Deleted', createdAt: at, updatedAt: at, archivedAt: null, position: null, schedule: null, deletedAt: at },
+      { id: 'shelf', title: 'Archived', createdAt: at, updatedAt: at, archivedAt: at, position: null, schedule: null, deletedAt: null },
     );
     state.completions[completionKey('gone', TODAY)] = { done: true, updatedAt: at };
 

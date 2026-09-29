@@ -33,6 +33,19 @@ export type Habit = {
    * with this field simply ignores it (see `lib/storage.ts`).
    */
   position: string | null;
+  /**
+   * How often this habit is meant to be kept, in the text form described in
+   * `lib/schedule.ts`. `null` means every day, which is what every habit made
+   * before v4 is.
+   *
+   * Kept as the stored text rather than a parsed object on purpose: a schedule
+   * written by a **newer** build passes through this one untouched instead of
+   * being rewritten as "every day" the next time anything about the habit is
+   * edited. Read it with `parseSchedule`.
+   *
+   * Added without a new storage version, exactly as `position` was in v3.
+   */
+  schedule: string | null;
   /** Tombstone. Set by deleting; the row is kept so the delete can sync. */
   deletedAt: string | null;
 };

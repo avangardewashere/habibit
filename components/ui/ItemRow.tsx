@@ -28,9 +28,11 @@ export function ItemRow({
   onToggle,
   onRemove,
   onRename,
+  onSchedule,
   onArchive,
   actionsLabel,
   renameLabel,
+  scheduleLabel,
   archiveLabel,
   deleteLabel,
   trailing,
@@ -42,11 +44,14 @@ export function ItemRow({
   onRemove: () => void;
   /** Receives the raw input; the reducer trims it and rejects an empty title. */
   onRename: (title: string) => void;
+  /** Habits only. Adds Days to the menu — how often the habit is due (v4 Block B). */
+  onSchedule?: () => void;
   /** Habits only. Adds Archive to the menu, between Rename and Delete. */
   onArchive?: () => void;
   /** Accessible name for the `⋯` button, e.g. "More actions for Drink water". */
   actionsLabel: string;
   renameLabel: string;
+  scheduleLabel?: string;
   archiveLabel?: string;
   /** Should say what deleting costs, e.g. "…and its whole completion history". */
   deleteLabel: string;
@@ -212,6 +217,25 @@ export function ItemRow({
             >
               Rename
             </button>
+            {onSchedule && (
+              <button
+                type="button"
+                onClick={() => {
+                  // Close the menu on the way out. The sheet covers the page,
+                  // and a menu left open behind it swallows the first tap on
+                  // the row when you come back (caught by V4B-53).
+                  setMode('idle');
+                  onSchedule();
+                }}
+                aria-label={scheduleLabel}
+                /* "Days" rather than "Schedule": four pills have to fit beside a
+                   title on a 375px phone, and the word people use for Mon/Wed/Fri
+                   is days. */
+                className="min-h-11 touch-manipulation rounded-full border border-ink-soft bg-card px-3 text-xs font-extrabold text-ink transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Days
+              </button>
+            )}
             {onArchive && (
               <button
                 type="button"

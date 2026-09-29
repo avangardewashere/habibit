@@ -13,7 +13,7 @@ import { ReviewButton } from './ReviewButton';
 const TODAY = new Date('2026-09-20T09:00:00+08:00');
 
 function habit(id: string, title: string, createdAt: string, position: string) {
-  return { id, title, createdAt, updatedAt: createdAt, archivedAt: null, deletedAt: null, position };
+  return { id, title, createdAt, updatedAt: createdAt, archivedAt: null, deletedAt: null, position, schedule: null };
 }
 
 function stored(): HabibitState {
