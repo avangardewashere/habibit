@@ -5,7 +5,7 @@ export const STORAGE_KEY = 'habibit:state';
 export const CORRUPT_KEY = 'habibit:state:corrupt';
 export const THEME_KEY = 'habibit:theme';
 
-type SeedHabit = { id: string; title: string };
+type SeedHabit = { id: string; title: string; /** v4 Block B's stored form, e.g. `weekdays:0,2,4`. */ schedule?: string | null };
 type SeedTask = { id: string; title: string; done?: boolean };
 
 /**
@@ -27,7 +27,14 @@ export function envelope({
   return {
     version: 2,
     state: {
-      habits: habits.map((h) => ({ ...h, createdAt: at, updatedAt: at, archivedAt: null, deletedAt: null })),
+      habits: habits.map((h) => ({
+        schedule: null,
+        ...h,
+        createdAt: at,
+        updatedAt: at,
+        archivedAt: null,
+        deletedAt: null,
+      })),
       tasks: tasks.map((t) => ({
         id: t.id,
         title: t.title,

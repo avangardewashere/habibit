@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { completionKey } from '@/lib/keys';
 import type { DateKey, HabibitState } from '@/lib/types';
-import { activeHabits, completedCount, currentStreak, isCompleted, liveTasks, openTasks, recentDays, sortedTasks } from './selectors';
+import { activeHabits, completedCount, habitStreak, isCompleted, liveTasks, openTasks, recentDays, sortedTasks } from './selectors';
+
+/**
+ * The v1 streak tests were written when a streak was just days-in-a-row for a
+ * habit id. v4 Block C answers it per habit, because the answer now depends on
+ * the habit's schedule; every case below still means exactly what it did.
+ */
+function currentStreak(state: HabibitState, habitId: string, today: DateKey): number {
+  const habit = state.habits.find((h) => h.id === habitId);
+  return habit ? habitStreak(state, habit, today).count : 0;
+}
 
 const TODAY: DateKey = '2026-09-08';
 

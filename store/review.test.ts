@@ -150,3 +150,73 @@ describe('habitReview', () => {
     expect(review).toMatchObject({ kept: 0, best: 0, possible: 2 });
   });
 });
+
+
+/*
+ * v4 Block C: a schedule changes what the calendar means. A day the habit was
+ * never due is not a miss, and must not read as one — nor count against the
+ * "kept N of M" line, nor break the best run.
+ *
+ * TODAY (2026-09-20) is a Sunday; the window is 24 Aug – 20 Sep.
+ */
+describe('the review respects a schedule', () => {
+  const MON_WED_FRI = 'weekdays:0,2,4';
+  const scheduled = (createdAt: string, schedule: string | null) => ({ ...habit(createdAt), schedule });
+
+  it('V4C-30 · ⭐ a day the habit was not due is marked apart from a miss', () => {
+    const h = scheduled('2026-01-01T02:00:00.000Z', MON_WED_FRI);
+    const state = stateWith([], h);
+
+    // 2026-09-14 is a Monday (due, missed); the 15th is a Tuesday (not due).
+    expect(reviewDay(state, h, '2026-09-14', TODAY)).toBe('missed');
+    expect(reviewDay(state, h, '2026-09-15', TODAY)).toBe('unscheduled');
+    // And still told apart from the days before the habit existed, and from
+    // days still to come.
+    const young = scheduled('2026-09-16T02:00:00.000Z', MON_WED_FRI);
+    expect(reviewDay(stateWith([], young), young, '2026-09-15', TODAY)).toBe('before');
+    expect(reviewDay(state, h, '2026-09-21', TODAY)).toBe('future');
+  });
+
+  it('V4C-31 · ⭐ a day kept when it was not due still reads as kept', () => {
+    // Changing a schedule never rewrites what you actually did.
+    const h = scheduled('2026-01-01T02:00:00.000Z', MON_WED_FRI);
+    expect(reviewDay(stateWith(['2026-09-15'], h), h, '2026-09-15', TODAY)).toBe('done');
+  });
+
+  it('V4C-32 · ⭐ "kept N of M" counts only the days it was due', () => {
+    const h = scheduled('2026-01-01T02:00:00.000Z', MON_WED_FRI);
+    // Every Mon, Wed and Fri in the four-week window: 12 days.
+    const due: DateKey[] = [
+      '2026-08-24', '2026-08-26', '2026-08-28',
+      '2026-08-31', '2026-09-02', '2026-09-04',
+      '2026-09-07', '2026-09-09', '2026-09-11',
+      '2026-09-14', '2026-09-16', '2026-09-18',
+    ];
+    const review = habitReview(stateWith(due, h), h, TODAY);
+
+    expect(review.possible).toBe(12);
+    expect(review.kept).toBe(12);
+    // A perfect month reads as perfect, rather than 12 of 28.
+    expect(review.days.flat().filter((d) => d.state === 'unscheduled')).toHaveLength(16);
+  });
+
+  it('V4C-33 · ⭐ the best run carries straight through the days off', () => {
+    const h = scheduled('2026-01-01T02:00:00.000Z', MON_WED_FRI);
+    const review = habitReview(stateWith(['2026-09-07', '2026-09-09', '2026-09-11', '2026-09-14'], h), h, TODAY);
+
+    // Four due days in a row kept, with two days off between each pair.
+    expect(review.best).toBe(4);
+  });
+
+  it('V4C-34 · ⭐ for a few-times-a-week habit, the days after the target are days off', () => {
+    const h = scheduled('2026-01-01T02:00:00.000Z', 'weekly:2');
+    // Monday and Tuesday of this week kept: the target was met, so the rest of
+    // the week is not a string of five failures.
+    const review = habitReview(stateWith(['2026-09-14', '2026-09-15'], h), h, TODAY);
+    const week = review.days.at(-1)!;
+
+    expect(week.map((d) => d.state)).toEqual([
+      'done', 'done', 'unscheduled', 'unscheduled', 'unscheduled', 'unscheduled', 'unscheduled',
+    ]);
+  });
+});
