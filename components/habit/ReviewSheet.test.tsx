@@ -99,8 +99,14 @@ describe('the review', () => {
 
   it('V3C-24 · ⭐ nothing in the review can change your history', () => {
     const dialog = open();
-    // One button, and it closes the sheet. No day is tappable.
-    expect(within(dialog).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Close review']);
+    /*
+     * Every button here changes what you are *looking at*, never what you did:
+     * close, and the two ranges added in v4 Block D. No day is tappable — the
+     * seven-day strip on the main list is the only place a day can be changed.
+     */
+    expect(within(dialog).getAllByRole('button').map((b) => b.textContent?.trim() || b.getAttribute('aria-label')))
+      .toEqual(['Close review', '4 weeks', 'Year']);
+    expect(dialog.querySelectorAll('button[data-day], [data-day] button')).toHaveLength(0);
   });
 
   it('V3C-25 · archived habits are left out', () => {

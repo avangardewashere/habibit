@@ -73,7 +73,40 @@ export function mondayIndex(key: DateKey): number {
   return (parseDateKey(key).getDay() + 6) % 7;
 }
 
+/**
+ * A rough length of time in words: "11 days", "6 weeks", "7 months", "2 years".
+ *
+ * Deliberately coarse. "Since you started" is a sense of how long you have been
+ * at this, not an audit — "7 months" says it better than "213 days", and nobody
+ * reads the second one as anything but noise.
+ */
+export function describeSpan(days: number): string {
+  const plural = (count: number, unit: string) => `${count} ${unit}${count === 1 ? '' : 's'}`;
+  if (days < 14) return plural(Math.max(1, days), 'day');
+  if (days < 61) return plural(Math.round(days / 7), 'week');
+  if (days < 730) return plural(Math.round(days / 30.44), 'month');
+  return plural(Math.round((days / 365.25) * 10) / 10, 'year');
+}
+
 /** e.g. "24 Aug" — the short form used either side of the review's date range. */
 export function formatDateKeyShort(key: DateKey): string {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(parseDateKey(key));
+}
+
+/**
+ * e.g. "24 Aug – 20 Sep", or "29 Sep 2025 – 1 Oct 2026" when the range crosses
+ * a new year.
+ *
+ * Without the years, a year-long range reads as three days (v4 Block D found
+ * exactly that: "29 Sept – 1 Oct" over the whole of last year).
+ */
+export function formatDateRange(from: DateKey, to: DateKey): string {
+  const sameYear = from.slice(0, 4) === to.slice(0, 4);
+  const show = (key: DateKey) =>
+    new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      ...(sameYear ? {} : { year: 'numeric' }),
+    }).format(parseDateKey(key));
+  return `${show(from)} – ${show(to)}`;
 }

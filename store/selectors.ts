@@ -226,17 +226,27 @@ export function reviewDay(state: HabibitState, habit: Habit, day: DateKey, today
 
 export type HabitReview = {
   days: { day: DateKey; state: ReviewDay }[][];
-  /** Days kept, out of the days this habit could have been kept. */
+  /** Kept, out of the times it could have been kept — in `unit`s. */
   kept: number;
   possible: number;
-  /** The longest run of kept days inside the window. */
+  /** The longest run inside the window, in the same unit. */
   best: number;
+  /**
+   * Days for most habits; **weeks** for one kept N times a week, where
+   * counting days would be nonsense: a twice-a-week habit nobody has started
+   * is "0 of 28 days" by the day-counting rule, as though it should have been
+   * done every day. Same unit as the streak badge, for the same reason.
+   */
+  unit: 'day' | 'week';
 };
 
 export function habitReview(state: HabibitState, habit: Habit, today: DateKey, weeks = 4): HabitReview {
   const days = reviewWeeks(today, weeks).map((week) =>
     week.map((day) => ({ day, state: reviewDay(state, habit, day, today) })),
   );
+
+  const schedule = parseSchedule(habit.schedule);
+  if (schedule.kind === 'weekly') return { days, unit: 'week', ...weeklyTotals(state, habit, days, schedule.times, today) };
 
   let kept = 0;
   let possible = 0;
@@ -258,5 +268,133 @@ export function habitReview(state: HabibitState, habit: Habit, today: DateKey, w
     }
   }
 
-  return { days, kept, possible, best };
+  return { days, kept, possible, best, unit: 'day' };
+}
+
+/**
+ * The same three numbers for an N-times-a-week habit, counted in weeks.
+ *
+ * A week counts as one you could have kept once it is **over**, or as soon as
+ * you have met its target — so the week in progress never reads as a failure
+ * before it has finished, exactly as it never breaks the streak.
+ */
+function weeklyTotals(
+  state: HabibitState,
+  habit: Habit,
+  days: { day: DateKey; state: ReviewDay }[][],
+  times: number,
+  today: DateKey,
+): { kept: number; possible: number; best: number } {
+  const born = dateKey(new Date(habit.createdAt));
+  let kept = 0;
+  let possible = 0;
+  let best = 0;
+  let run = 0;
+
+  for (const week of days) {
+    const monday = week[0].day;
+    const sunday = week[6].day;
+    // Weeks wholly before the habit existed, or wholly ahead of today.
+    if (sunday < born || monday > today) continue;
+
+    const met = week.filter(({ day }) => isCompleted(state, habit.id, day)).length >= times;
+    if (met) {
+      kept += 1;
+      possible += 1;
+      run += 1;
+      best = Math.max(best, run);
+    } else if (sunday <= today) {
+      possible += 1;
+      run = 0;
+    }
+    // An unfinished week that hasn't met its target yet counts neither way.
+  }
+
+  return { kept, possible, best };
+}
+
+// ---------------------------------------------------------------------------
+// Longer history (v4 Block D): a year at a glance, the best run ever, and how
+// far back the whole thing goes. All of it reads the same rules as Block C —
+// a day the habit wasn't due is neither kept nor missed — so no number here
+// can ever disagree with the streak on the list.
+// ---------------------------------------------------------------------------
+
+/**
+ * 53 weeks, not 52: a year is 52 weeks and a day or two, so 52 Monday-to-Sunday
+ * columns would always cut the far end of it off.
+ */
+export const YEAR_WEEKS = 53;
+
+/** The first day this habit knows about: when it was made, or an earlier day someone backfilled. */
+export function firstDayOf(state: HabibitState, habit: Habit): DateKey {
+  let earliest = dateKey(new Date(habit.createdAt));
+  const prefix = `${habit.id}::`;
+  for (const [key, completion] of Object.entries(state.completions)) {
+    if (!completion.done || !key.startsWith(prefix)) continue;
+    const day = key.slice(prefix.length);
+    if (day < earliest) earliest = day;
+  }
+  return earliest;
+}
+
+/**
+ * The longest run this habit has ever had — in days, or in weeks for a habit
+ * kept N times a week.
+ *
+ * Walks the habit's whole life once, applying exactly the rules `habitStreak`
+ * applies to the recent end of it: a day it wasn't due neither counts nor
+ * breaks, and a day it was due and missed ends the run. An unfinished today
+ * can't lower a best that has already happened.
+ */
+export function bestEver(state: HabibitState, habit: Habit, today: DateKey): Streak {
+  const schedule = parseSchedule(habit.schedule);
+  const done = (day: DateKey) => isCompleted(state, habit.id, day);
+  const from = firstDayOf(state, habit);
+
+  if (schedule.kind === 'weekly') {
+    let best = 0;
+    let run = 0;
+    const lastMonday = weekStart(today);
+    for (let monday = weekStart(from); monday <= lastMonday; monday = addDaysToKey(monday, 7)) {
+      if (weekOf(monday).filter(done).length >= schedule.times) {
+        run += 1;
+        best = Math.max(best, run);
+      } else {
+        run = 0;
+      }
+    }
+    return { count: best, unit: 'week' };
+  }
+
+  let best = 0;
+  let run = 0;
+  for (let day = from; day <= today; day = addDaysToKey(day, 1)) {
+    if (done(day)) {
+      run += 1;
+      best = Math.max(best, run);
+    } else if (isDueOn(schedule, day, done)) {
+      run = 0;
+    }
+  }
+  return { count: best, unit: 'day' };
+}
+
+/** How much of this habit there is: times kept, over how many days of trying. */
+export type HabitHistory = { times: number; days: number; from: DateKey };
+
+export function sinceYouStarted(state: HabibitState, habit: Habit, today: DateKey): HabitHistory {
+  const from = firstDayOf(state, habit);
+  const prefix = `${habit.id}::`;
+  let times = 0;
+  for (const [key, completion] of Object.entries(state.completions)) {
+    // A tick dated in the future (a clock that ran ahead) is not something you
+    // have done yet, and must not pad the total.
+    if (completion.done && key.startsWith(prefix) && key.slice(prefix.length) <= today) times += 1;
+  }
+
+  let days = 1;
+  for (let day = from; day < today; day = addDaysToKey(day, 1)) days += 1;
+
+  return { times, days, from };
 }
