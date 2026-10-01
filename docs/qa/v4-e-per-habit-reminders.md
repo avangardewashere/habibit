@@ -1,6 +1,6 @@
 # Habibit: v4 Block E, per-habit reminders — turning one on
 
-**Block:** E of 6 (v4) · **Date:** 2026-10-01 · **Status:** ✅ green locally — waiting for CI and your sign-off
+**Block:** E of 6 (v4) · **Date:** 2026-10-01 · **Status:** ✅ all green on CI (run 36803523736), first try — waiting for your sign-off
 
 > **One habit can now ask to be reminded, at its own time.** In a habit's `⋯` menu, **When** opens
 > the sheet; under *How often* there is now **Remind me**: on or off, a time, and — your decision
@@ -155,4 +155,4 @@ being caught, which is the point of doing them. Source files verified byte-ident
 | Browser (Playwright), 124 tests × 2 devices | 248 runs | ✅ |
 
 All four suites green on this machine, the database ones against a local Supabase in Docker — and
-for once the browser suite too, with none skipped.
+for once the browser suite too, with none skipped. All four green on CI (run 36803523736), first try.
