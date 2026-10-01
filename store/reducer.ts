@@ -21,6 +21,11 @@ export type HabibitIntent =
   | { type: 'ADD_HABIT'; title: string }
   | { type: 'REMOVE_HABIT'; id: string }
   /**
+   * Undoes REMOVE_HABIT. The habit comes back exactly as it was, history and
+   * all: completions are keyed by its id and were never touched by the delete.
+   */
+  | { type: 'RESTORE_HABIT'; id: string }
+  /**
    * Changes only the title. Completions are keyed by the habit's id, never its
    * title, so the whole history follows a rename for free — which is the
    * reason ids exist at all.
@@ -38,6 +43,8 @@ export type HabibitIntent =
   | { type: 'ADD_TASK'; title: string }
   | { type: 'TOGGLE_TASK'; id: string }
   | { type: 'REMOVE_TASK'; id: string }
+  /** Undoes REMOVE_TASK. */
+  | { type: 'RESTORE_TASK'; id: string }
   | { type: 'RENAME_TASK'; id: string; title: string };
 
 /**
@@ -81,6 +88,27 @@ export function stamp(
     return { ...intent, id: makeId(), at };
   }
   return { ...intent, at };
+}
+
+/**
+ * When an undo is recorded: `at`, or 1ms after the delete, whichever is later.
+ *
+ * An undo has to be **strictly newer** than the delete it undoes, and two rules
+ * elsewhere make "roughly at the same time" not good enough:
+ *
+ * - on a tie, sync deliberately keeps the delete (lib/sync/merge.ts, `newer`),
+ *   so that a tie can never bring back something deleted;
+ * - the server keeps whichever it already has when a write is *older*
+ *   (supabase/migrations/…_keep_latest.sql).
+ *
+ * Wall clocks can go backwards — a phone correcting its time between the delete
+ * and the undo is enough. Without this, that undo would work on screen and then
+ * quietly lose to the delete on the next sync. Pure: decided from the state and
+ * the action alone.
+ */
+function restoredAt(at: string, deleteVersion: string): string {
+  const floor = Date.parse(deleteVersion) + 1;
+  return Date.parse(at) >= floor ? at : new Date(floor).toISOString();
 }
 
 /**
@@ -219,6 +247,17 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
       };
     }
 
+    case 'RESTORE_HABIT': {
+      // Only something that is actually deleted can be restored.
+      const habit = state.habits.find((h) => h.id === action.id && h.deletedAt !== null);
+      if (!habit) return state;
+      const at = restoredAt(action.at, habit.updatedAt);
+      return {
+        ...state,
+        habits: state.habits.map((h) => (h.id === action.id ? { ...h, deletedAt: null, updatedAt: at } : h)),
+      };
+    }
+
     case 'RENAME_HABIT': {
       const title = action.title.trim();
       // An empty rename is rejected rather than treated as a delete.
@@ -285,6 +324,16 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
         tasks: state.tasks.map((t) =>
           t.id === action.id ? { ...t, title, updatedAt: action.at } : t,
         ),
+      };
+    }
+
+    case 'RESTORE_TASK': {
+      const task = state.tasks.find((x) => x.id === action.id && x.deletedAt !== null);
+      if (!task) return state;
+      const at = restoredAt(action.at, task.updatedAt);
+      return {
+        ...state,
+        tasks: state.tasks.map((x) => (x.id === action.id ? { ...x, deletedAt: null, updatedAt: at } : x)),
       };
     }
 

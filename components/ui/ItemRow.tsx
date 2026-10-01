@@ -18,8 +18,9 @@ type Mode = 'idle' | 'menu' | 'editing';
  * Rename and Delete in place (and Archive, for habits). One button instead of a pencil *and* an `×` keeps
  * about 48px more room for the title on a phone (measured: 178px vs 130px).
  *
- * Deleting is still two taps — `⋯` then Delete — because a stray tap would
- * destroy real history and there is no undo.
+ * Deleting is two taps — `⋯` then Delete — and since v4 it can be undone for a
+ * few seconds afterwards (store/UndoProvider.tsx). The `⋯` stays because it also
+ * holds Rename and Archive, not only to guard Delete.
  */
 export function ItemRow({
   title,
