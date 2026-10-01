@@ -1,6 +1,6 @@
 # Habibit: v4 Block D, longer history
 
-**Block:** D of 6 (v4) · **Date:** 2026-10-01 · **Status:** ✅ green locally — waiting for CI and your sign-off
+**Block:** D of 6 (v4) · **Date:** 2026-10-01 · **Status:** ✅ all green on CI (run 36797325671), first try — waiting for your sign-off
 
 > **The review goes back a year.** Two buttons at the top: **4 weeks** or **Year**. The year is one
 > small square a day, a year to a screen, with the line underneath saying *Best ever 13 days in a
@@ -143,8 +143,8 @@ button changes only what you are looking at.
 |---|---|---|
 | Unit (Vitest) | 515 | ✅ |
 | Daylight saving | 9 | ✅ |
-| Browser (Playwright), 122 tests × 2 devices | 244 runs | ✅ 168 ran here |
-| Database | 70 | ⏳ CI (untouched by this block) |
+| Browser (Playwright), 122 tests × 2 devices | 244 runs | ✅ |
+| Database | 70 | ✅ (untouched by this block) |
 
-76 browser runs skipped locally: the account tests need the local Supabase, which is stopped to save
+All four suites green on CI (run 36797325671), first try. 76 browser runs skipped locally: the account tests need the local Supabase, which is stopped to save
 memory on this machine. CI runs all of them, with the database suite.
