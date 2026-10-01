@@ -1,11 +1,25 @@
 'use client';
 
 import { Flame, X } from 'lucide-react';
-import { useEffect, useId, useRef } from 'react';
-import { formatDateKeyShort, weekdayInitial } from '@/lib/date';
+import { useEffect, useId, useRef, useState } from 'react';
+import { describeSpan, formatDateRange, weekdayInitial } from '@/lib/date';
 import type { DateKey, Habit } from '@/lib/types';
 import { useHabibit } from '@/store/HabibitProvider';
-import { activeHabits, habitReview, reviewWeeks, type HabitReview } from '@/store/selectors';
+import {
+  activeHabits,
+  bestEver,
+  habitReview,
+  reviewWeeks,
+  sinceYouStarted,
+  YEAR_WEEKS,
+  type HabitHistory,
+  type HabitReview,
+  type Streak,
+} from '@/store/selectors';
+import { YearGrid } from './YearGrid';
+
+/** How much history the review shows at once. */
+type Range = 'month' | 'year';
 
 /**
  * The last four weeks, habit by habit: a calendar you can read, not tap.
@@ -22,8 +36,9 @@ export function ReviewSheet({ today, onClose }: { today: DateKey; onClose: () =>
   const habits = activeHabits(state);
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
-  const weeks = reviewWeeks(today);
-  const from = weeks[0][0];
+  const [range, setRange] = useState<Range>('month');
+  const weeks = range === 'year' ? YEAR_WEEKS : 4;
+  const from = reviewWeeks(today, weeks)[0][0];
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -52,11 +67,9 @@ export function ReviewSheet({ today, onClose }: { today: DateKey; onClose: () =>
         <div className="mb-5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 id={titleId} className="text-2xl font-extrabold tracking-tight text-ink">
-              Last 4 weeks
+              {range === 'year' ? 'Last year' : 'Last 4 weeks'}
             </h2>
-            <p className="mt-0.5 text-sm text-ink-soft">
-              {formatDateKeyShort(from)} – {formatDateKeyShort(today)}
-            </p>
+            <p className="mt-0.5 text-sm text-ink-soft">{formatDateRange(from, today)}</p>
           </div>
           <button
             ref={closeRef}
@@ -69,6 +82,29 @@ export function ReviewSheet({ today, onClose }: { today: DateKey; onClose: () =>
           </button>
         </div>
 
+        {/*
+          * Four weeks or a year. Two buttons rather than a dropdown: there are
+          * only ever two, and a dropdown would hide one of them behind a tap.
+          */}
+        <div className="mb-3 flex gap-1" role="group" aria-label="How much history to show">
+          {(['month', 'year'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setRange(option)}
+              aria-pressed={range === option}
+              className={[
+                'min-h-11 touch-manipulation rounded-full border px-4 text-xs font-extrabold transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                range === option
+                  ? 'border-badge-done-bg bg-badge-done-bg text-badge-done-fg'
+                  : 'border-ink-soft bg-card text-ink',
+              ].join(' ')}
+            >
+              {option === 'month' ? '4 weeks' : 'Year'}
+            </button>
+          ))}
+        </div>
+
         {habits.length === 0 ? (
           <p className="rounded-card border border-line bg-card px-4 py-7 text-center text-sm text-ink-soft">
             Nothing to review yet. Add a habit and come back in a few days.
@@ -76,7 +112,15 @@ export function ReviewSheet({ today, onClose }: { today: DateKey; onClose: () =>
         ) : (
           <div className="space-y-3">
             {habits.map((habit) => (
-              <HabitCalendar key={habit.id} habit={habit} review={habitReview(state, habit, today)} today={today} />
+              <HabitCalendar
+                key={habit.id}
+                habit={habit}
+                review={habitReview(state, habit, today, weeks)}
+                today={today}
+                range={range}
+                best={bestEver(state, habit, today)}
+                history={sinceYouStarted(state, habit, today)}
+              />
             ))}
           </div>
         )}
@@ -85,8 +129,23 @@ export function ReviewSheet({ today, onClose }: { today: DateKey; onClose: () =>
   );
 }
 
-function HabitCalendar({ habit, review, today }: { habit: Habit; review: HabitReview; today: DateKey }) {
-  const { days, kept, possible, best } = review;
+function HabitCalendar({
+  habit,
+  review,
+  today,
+  range,
+  best: allTime,
+  history,
+}: {
+  habit: Habit;
+  review: HabitReview;
+  today: DateKey;
+  range: Range;
+  /** The best run ever, which is usually older than the window being shown. */
+  best: Streak;
+  history: HabitHistory;
+}) {
+  const { days, kept, possible, best, unit } = review;
 
   return (
     <section className="rounded-card border border-line bg-card p-4">
@@ -97,7 +156,8 @@ function HabitCalendar({ habit, review, today }: { habit: Habit; review: HabitRe
        * themselves are a picture. Everything below is hidden from it.
        */}
       <p className="mt-0.5 text-sm text-ink-soft">
-        Kept {kept} of {possible} {possible === 1 ? 'day' : 'days'}
+        Kept {kept} of {possible} {unit}
+        {possible === 1 ? '' : 's'}
         {best > 0 && (
           <span className="ml-2 inline-flex items-center gap-1 align-middle font-bold text-ink">
             <Flame aria-hidden className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -106,6 +166,22 @@ function HabitCalendar({ habit, review, today }: { habit: Habit; review: HabitRe
         )}
       </p>
 
+      {/*
+       * v4 Block D. Only in the year view: in the four-week one these two lines
+       * would be about a stretch of time the squares above don't show, which
+       * reads as a contradiction rather than as context.
+       */}
+      {range === 'year' && (
+        <p className="mt-1 text-sm text-ink-soft">
+          Best ever {allTime.count} {allTime.unit}
+          {allTime.count === 1 ? '' : 's'} in a row · kept {history.times}{' '}
+          {history.times === 1 ? 'time' : 'times'} over {describeSpan(history.days)}
+        </p>
+      )}
+
+      {range === 'year' ? (
+        <YearGrid weeks={days} />
+      ) : (
       <div aria-hidden className="mt-3">
         <div className="mb-1 grid grid-cols-7 gap-1">
           {days[0].map((cell) => (
@@ -143,6 +219,7 @@ function HabitCalendar({ habit, review, today }: { habit: Habit; review: HabitRe
           ))}
         </div>
       </div>
+      )}
     </section>
   );
 }

@@ -44,9 +44,15 @@ test('V3C-52 · ⭐ nothing in the review can change your history', async ({ pag
   await addHabit(page, 'Drink water');
   await openReview(page);
 
+  /*
+   * Every button changes what you are looking at, never what you did: close,
+   * and the two ranges added in v4 Block D. No day is tappable here — the
+   * seven-day strip on the main list is the only place a day can be changed.
+   */
   const buttons = sheet(page).getByRole('button');
-  await expect(buttons).toHaveCount(1);
-  await expect(buttons).toHaveAccessibleName('Close review');
+  await expect(buttons).toHaveCount(3);
+  await expect(buttons.first()).toHaveAccessibleName('Close review');
+  await expect(sheet(page).locator('button[data-day], [data-day] button')).toHaveCount(0);
 });
 
 test('V3C-53 · ⭐ a habit made mid-window shows blank days before it, not misses', async ({ page }) => {

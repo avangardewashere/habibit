@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDaysToKey,
+  describeSpan,
+  formatDateRange,
   dateKey,
   formatDateKeyLong,
   formatDayLabel,
@@ -140,5 +142,32 @@ describe('weekdayInitial', () => {
 describe('formatDateKeyLong', () => {
   it('names the day for a screen reader', () => {
     expect(formatDateKeyLong('2026-09-08')).toBe('Tuesday, September 8');
+  });
+});
+
+
+/* v4 Block D: saying how long ago, and over what span. */
+
+describe('describeSpan', () => {
+  it('V4D-20 · gets coarser as the span gets longer', () => {
+    expect(describeSpan(1)).toBe('1 day');
+    expect(describeSpan(11)).toBe('11 days');
+    expect(describeSpan(21)).toBe('3 weeks');
+    expect(describeSpan(95)).toBe('3 months');
+    expect(describeSpan(365)).toBe('12 months');
+    expect(describeSpan(900)).toBe('2.5 years');
+  });
+
+  it('V4D-21 · never says "0 days" for a habit made today', () => {
+    expect(describeSpan(0)).toBe('1 day');
+  });
+});
+
+describe('formatDateRange', () => {
+  it('V4D-22 · ⭐ adds the years when the range crosses one', () => {
+    // Without this a whole year reads as three days, which is what the review
+    // showed the first time the year view was opened.
+    expect(formatDateRange('2025-09-29', '2026-10-01')).toBe('29 Sept 2025 – 1 Oct 2026');
+    expect(formatDateRange('2026-08-24', '2026-09-20')).toBe('24 Aug – 20 Sept');
   });
 });
