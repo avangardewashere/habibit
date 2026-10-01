@@ -124,13 +124,17 @@ async function warm(urls) {
  * point of it. The browser requires that every push show something, so each one
  * ends in a notification.
  *
- * The message is written by the sender (Block E) and carries no habit names,
- * only a count: a push passes through a service we do not run, and a lock
- * screen is read over shoulders.
+ * The message is written by the sender, and the daily nudge carries no habit
+ * names, only a count: a push passes through a service we do not run, and a
+ * lock screen is read over shoulders. Since v4 Block E a *single habit* can be
+ * told it may name itself — the sender decides that, per habit, and nothing
+ * here can add a name that wasn't sent.
  * ---------------------------------------------------------------------------
  */
 
 const REMINDER_TAG = 'habibit-reminder';
+/** A sender's tag has to look like one of ours before it replaces anything. */
+const TAG_PATTERN = /^habibit-[a-z0-9:-]{1,80}$/;
 
 self.addEventListener('push', (event) => {
   let payload = {};
@@ -150,9 +154,13 @@ self.addEventListener('push', (event) => {
       body,
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
-      // One tag, so a second reminder replaces the first rather than stacking
-      // up a column of them on a phone left alone for a week.
-      tag: REMINDER_TAG,
+      /*
+       * The tag decides what replaces what. The daily nudge keeps one tag, so
+       * a week of unread nudges is one notification rather than a column of
+       * them — but each habit's reminder carries its *own* tag (v4 Block F),
+       * or two habits due at eight o'clock would silently become one.
+       */
+      tag: typeof payload.tag === 'string' && TAG_PATTERN.test(payload.tag) ? payload.tag : REMINDER_TAG,
       data: { url: '/' },
     }),
   );

@@ -1,5 +1,9 @@
 -- Habibit v3 Block E: waking the sender every quarter hour.
 --
+-- Unchanged by v4 Block F: the same job, the same quarter-hour schedule. The
+-- function it wakes now claims two lists each time — the account-wide nudge
+-- and the per-habit reminders — so there is nothing new to schedule.
+--
 -- This file is **not a migration**, and CI never runs it. It needs two things a
 -- repo must not contain: the address of your deployed function, and a key that
 -- can read every account. You run it once, by hand, in your project's SQL

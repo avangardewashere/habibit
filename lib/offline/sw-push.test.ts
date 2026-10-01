@@ -80,6 +80,28 @@ describe('a reminder arriving at the service worker', () => {
     expect(worker.shown[0].options.tag).toBe('habibit-reminder');
   });
 
+  it('V4F-20 · ⭐ two habits due at the same time are two notifications, not one', async () => {
+    // Each habit's reminder carries its own tag. With the daily nudge's single
+    // tag they would replace each other, and the second habit would be told
+    // about silently — which is indistinguishable from the sender being broken.
+    const worker = loadWorker();
+
+    await worker.fire('push', push({ title: 'Habibit', body: 'Time for Take medication.', tag: 'habibit-habit:h1' }));
+    await worker.fire('push', push({ title: 'Habibit', body: 'Time for one of your habits.', tag: 'habibit-habit:h2' }));
+
+    expect(worker.shown.map((s) => s.options.tag)).toEqual(['habibit-habit:h1', 'habibit-habit:h2']);
+  });
+
+  it('V4F-21 · ⭐ a tag that is not one of ours is ignored rather than trusted', async () => {
+    const worker = loadWorker();
+
+    for (const tag of ['../../evil', 'something-else', '', 'habibit-' + 'x'.repeat(200), 42]) {
+      await worker.fire('push', push({ title: 'Habibit', body: 'Hello', tag }));
+    }
+
+    expect(worker.shown.map((s) => s.options.tag)).toEqual(Array(5).fill('habibit-reminder'));
+  });
+
   it('V3D-21 · ⭐ still shows something when the message is missing or unreadable', async () => {
     const worker = loadWorker();
 
