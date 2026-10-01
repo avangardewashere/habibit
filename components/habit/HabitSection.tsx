@@ -78,7 +78,7 @@ export function HabitSection() {
       onArchive={() => dispatch({ type: 'ARCHIVE_HABIT', id: habit.id })}
       actionsLabel={`More actions for ${habit.title}`}
       renameLabel={`Rename habit: ${habit.title}`}
-      scheduleLabel={`How often ${habit.title} is due: ${describeSchedule(parseSchedule(habit.schedule))}`}
+      scheduleLabel={`When ${habit.title} is due, and whether to remind you: ${describeSchedule(parseSchedule(habit.schedule))}`}
       archiveLabel={`Archive ${habit.title}, keeping its history`}
       deleteLabel={`Delete ${habit.title} and its whole completion history`}
       trailing={today ? <StreakBadge streak={habitStreak(state, habit, today)} /> : null}
