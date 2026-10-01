@@ -1,6 +1,6 @@
 # Habibit: v4 Block F, per-habit reminders — sending them
 
-**Block:** F of 6 (v4) · **Date:** 2026-10-02 · **Status:** ✅ green locally — waiting for CI, your sign-off, and one check only a real phone can do
+**Block:** F of 6 (v4) · **Date:** 2026-10-02 · **Status:** ✅ all green on CI (run 36807930704), first try — waiting for your sign-off, and one check only a real phone can do
 
 > **The reminders you turned on in Block E now actually go out.** The sender wakes every quarter
 > hour as before, and now claims two lists: the account-wide nudge, and one reminder per habit that
@@ -181,4 +181,5 @@ Nothing in this block is marked passed on the strength of those; they are yours 
 | Database | 99 | ✅ |
 | Browser (Playwright), 124 tests × 2 devices | 248 runs | ✅ |
 
-All four green on this machine, the database ones against a local Supabase in Docker.
+All four green on this machine, the database ones against a local Supabase in Docker, and all four
+green on CI (run 36807930704) first try.
