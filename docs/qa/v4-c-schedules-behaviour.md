@@ -1,6 +1,6 @@
 # Habibit: v4 Block C, schedules — what they change
 
-**Block:** C of 6 (v4) · **Date:** 2026-10-01 · **Status:** ✅ green locally — waiting for CI and your sign-off
+**Block:** C of 6 (v4) · **Date:** 2026-10-01 · **Status:** ✅ all green on CI (run 36793430014), first try — waiting for your sign-off
 
 > **Schedules now do something.** A habit that isn't due today drops below the ones that are, in a
 > quieter colour, saying *Not due today · Mondays*. Streaks stop counting the days in between: a
@@ -181,10 +181,11 @@ meaning is unchanged: a habit with no schedule is a habit due every day.
 |---|---|---|
 | Unit (Vitest) | 493 | ✅ |
 | Daylight saving | 9 | ✅ |
-| Browser (Playwright), 118 tests × 2 devices | 236 runs | ✅ 160 ran here |
-| Database | 70 | ⏳ CI |
+| Browser (Playwright), 118 tests × 2 devices | 236 runs | ✅ |
+| Database | 70 | ✅ |
 
-**Two honest notes on the local run.** One test file's worker couldn't start on this machine (1.3 GB
+**All four suites are green on CI (run 36793430014), first try, and the counts above are CI's own.
+Two honest notes on the local run.** One test file's worker couldn't start on this machine (1.3 GB
 free of 16 GB) — it passes on its own, twice, and its four tests are counted from those runs, not
 from the run that never happened. And 76 browser runs skipped locally because the account tests need
 the local Supabase, which is stopped to save memory; CI runs all 236 with it up, along with the
