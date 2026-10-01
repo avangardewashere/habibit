@@ -128,9 +128,15 @@ function HabitCalendar({ habit, review, today }: { habit: Habit; review: HabitRe
                     ? 'bg-accent'
                     : state === 'missed'
                       ? 'border-2 border-ink-soft'
-                      : // Before it existed, or still to come. A dimmed outline, not a
-                        // miss: it keeps the grid readable without claiming you failed.
-                        'border-2 border-ink-soft opacity-25',
+                      : state === 'unscheduled'
+                        ? // A day the habit wasn't due. Marked differently from a
+                          // day that hadn't started and from one still to come: a
+                          // Mon/Wed/Fri habit didn't fail on Thursday, and the
+                          // calendar shouldn't leave room to read it that way.
+                          'scale-[0.35] rounded-full bg-ink-soft opacity-60'
+                        : // Before it existed, or still to come. A dimmed outline, not a
+                          // miss: it keeps the grid readable without claiming you failed.
+                          'border-2 border-ink-soft opacity-25',
                 ].join(' ')}
               />
             </span>

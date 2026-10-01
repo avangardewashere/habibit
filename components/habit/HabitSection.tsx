@@ -12,11 +12,15 @@ import {
   activeHabits,
   archivedHabits,
   completedCount,
-  currentStreak,
+  dueHabits,
+  habitStreak,
   isCompleted,
+  isDue,
   recentDays,
+  restingHabits,
 } from '@/store/selectors';
 import { describeSchedule, parseSchedule } from '@/lib/schedule';
+import type { Habit } from '@/lib/types';
 import { ArchivedHabits } from './ArchivedHabits';
 import { ArrangeList } from './ArrangeList';
 import { DayStrip } from './DayStrip';
@@ -50,6 +54,57 @@ export function HabitSection() {
   const canArrange = habits.length >= 2;
   const arranging = arrangingRequested && canArrange;
 
+  /*
+   * Due today first, resting ones after. Before the client knows the date
+   * nothing can be due, so the server renders the list in its plain order and
+   * nothing jumps when the date arrives.
+   */
+  const rows = today ? dueHabits(state, today) : habits;
+  const resting = today ? restingHabits(state, today) : [];
+
+  const row = (habit: Habit, atRest: boolean) => (
+    <ItemRow
+      key={habit.id}
+      title={habit.title}
+      muted={atRest}
+      checked={today ? isCompleted(state, habit.id, today) : false}
+      onToggle={() => today && dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: today })}
+      onRemove={() => {
+        dispatch({ type: 'REMOVE_HABIT', id: habit.id });
+        offer(`Deleted “${habit.title}”`, () => dispatch({ type: 'RESTORE_HABIT', id: habit.id }));
+      }}
+      onRename={(title) => dispatch({ type: 'RENAME_HABIT', id: habit.id, title })}
+      onSchedule={() => setScheduling(habit.id)}
+      onArchive={() => dispatch({ type: 'ARCHIVE_HABIT', id: habit.id })}
+      actionsLabel={`More actions for ${habit.title}`}
+      renameLabel={`Rename habit: ${habit.title}`}
+      scheduleLabel={`How often ${habit.title} is due: ${describeSchedule(parseSchedule(habit.schedule))}`}
+      archiveLabel={`Archive ${habit.title}, keeping its history`}
+      deleteLabel={`Delete ${habit.title} and its whole completion history`}
+      trailing={today ? <StreakBadge streak={habitStreak(state, habit, today)} /> : null}
+      below={
+        today ? (
+          <>
+            {/* Says why the row is quiet, and what it is instead. */}
+            {atRest && (
+              <p className="px-4 pb-1 text-xs text-ink-soft">
+                Not due today · {describeSchedule(parseSchedule(habit.schedule))}
+              </p>
+            )}
+            <DayStrip
+              habitTitle={habit.title}
+              days={days}
+              today={today}
+              isDone={(day) => isCompleted(state, habit.id, day)}
+              isDueOnDay={(day) => isDue(state, habit, day)}
+              onToggle={(day) => dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: day })}
+            />
+          </>
+        ) : null
+      }
+    />
+  );
+
   return (
     <section className="mb-7">
       <SectionHeader
@@ -68,16 +123,24 @@ export function HabitSection() {
                   {arranging ? 'Done' : 'Arrange'}
                 </button>
               )}
-              <span
-                className={[
-                  'rounded-full px-2 py-0.5 text-xs font-extrabold tabular-nums transition-colors',
-                  done === habits.length
-                    ? 'bg-badge-done-bg text-badge-done-fg'
-                    : 'bg-badge-bg text-badge-fg',
-                ].join(' ')}
-              >
-                {done}/{habits.length}
-              </span>
+              {/*
+                * Out of what is due **today**, not out of everything you keep
+                * (v4 Block C). A Monday-only habit shouldn't make every
+                * Tuesday read as unfinished. With nothing due there is no
+                * fraction to show, and "0/0" would only look broken.
+                */}
+              {rows.length > 0 && (
+                <span
+                  className={[
+                    'rounded-full px-2 py-0.5 text-xs font-extrabold tabular-nums transition-colors',
+                    done === rows.length
+                      ? 'bg-badge-done-bg text-badge-done-fg'
+                      : 'bg-badge-bg text-badge-fg',
+                  ].join(' ')}
+                >
+                  {done}/{rows.length}
+                </span>
+              )}
             </span>
           ) : null
         }
@@ -103,42 +166,14 @@ export function HabitSection() {
             {today && <WeekdayHeader days={days} today={today} />}
 
             <ul className="divide-y divide-line">
-              {habits.map((habit) => (
-                <ItemRow
-                  key={habit.id}
-                  title={habit.title}
-                  checked={today ? isCompleted(state, habit.id, today) : false}
-                  onToggle={() =>
-                    today && dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: today })
-                  }
-                  onRemove={() => {
-                    dispatch({ type: 'REMOVE_HABIT', id: habit.id });
-                    offer(`Deleted “${habit.title}”`, () => dispatch({ type: 'RESTORE_HABIT', id: habit.id }));
-                  }}
-                  onRename={(title) => dispatch({ type: 'RENAME_HABIT', id: habit.id, title })}
-                  onSchedule={() => setScheduling(habit.id)}
-                  onArchive={() => dispatch({ type: 'ARCHIVE_HABIT', id: habit.id })}
-                  actionsLabel={`More actions for ${habit.title}`}
-                  renameLabel={`Rename habit: ${habit.title}`}
-                  scheduleLabel={`How often ${habit.title} is due: ${describeSchedule(parseSchedule(habit.schedule))}`}
-                  archiveLabel={`Archive ${habit.title}, keeping its history`}
-                  deleteLabel={`Delete ${habit.title} and its whole completion history`}
-                  trailing={today ? <StreakBadge streak={currentStreak(state, habit.id, today)} /> : null}
-                  below={
-                    today ? (
-                      <DayStrip
-                        habitTitle={habit.title}
-                        days={days}
-                        today={today}
-                        isDone={(day) => isCompleted(state, habit.id, day)}
-                        onToggle={(day) =>
-                          dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: day })
-                        }
-                      />
-                    ) : null
-                  }
-                />
-              ))}
+              {rows.map((habit) => row(habit, false))}
+              {/*
+               * Habits that aren't due today, below the rest and in a quieter
+               * colour (your choice, v4 Block C). Not hidden: a habit you can't
+               * see is one you forget you have, and it stays tappable for the
+               * day you do it anyway.
+               */}
+              {resting.map((habit) => row(habit, true))}
             </ul>
           </>
         )}

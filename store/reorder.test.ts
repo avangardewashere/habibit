@@ -9,7 +9,7 @@ import {
   archivedHabits,
   compareHabits,
   completedCount,
-  currentStreak,
+  habitStreak,
   liveHabits,
 } from './selectors';
 
@@ -176,7 +176,7 @@ describe('archiving', () => {
     for (const day of ['2026-09-18', '2026-09-19', TODAY]) {
       state = run([{ type: 'TOGGLE_COMPLETION', habitId: stretch, dateKey: day }], state);
     }
-    expect(currentStreak(state, stretch, TODAY)).toBe(3);
+    expect(habitStreak(state, state.habits.find((h) => h.id === stretch)!, TODAY).count).toBe(3);
     expect(completedCount(state, TODAY)).toBe(1);
 
     state = run([{ type: 'ARCHIVE_HABIT', id: stretch }], state);
@@ -187,7 +187,7 @@ describe('archiving', () => {
 
     state = run([{ type: 'UNARCHIVE_HABIT', id: stretch }], state);
     expect(titles(activeHabits(state))).toEqual(['Water', 'Stretch', 'Read']);
-    expect(currentStreak(state, stretch, TODAY)).toBe(3);
+    expect(habitStreak(state, state.habits.find((h) => h.id === stretch)!, TODAY).count).toBe(3);
     expect(state.completions[completionKey(stretch, TODAY)]?.done).toBe(true);
   });
 

@@ -25,6 +25,7 @@ type Mode = 'idle' | 'menu' | 'editing';
 export function ItemRow({
   title,
   checked,
+  muted = false,
   onToggle,
   onRemove,
   onRename,
@@ -40,6 +41,13 @@ export function ItemRow({
 }: {
   title: string;
   checked: boolean;
+  /**
+   * Quieter, for a habit that isn't due today (v4 Block C). The title takes the
+   * secondary ink colour rather than an opacity: 60% of the ink colour over a
+   * card measures about 3.4:1, which is below the 4.5:1 this app holds text to,
+   * while `ink-soft` is tested at 5.08 light and 5.20 dark.
+   */
+  muted?: boolean;
   onToggle: () => void;
   onRemove: () => void;
   /** Receives the raw input; the reducer trims it and rejects an empty title. */
@@ -195,7 +203,8 @@ export function ItemRow({
               // While the menu is open the pills take the room, so the title stays on
               // one line and trails off rather than collapsing into a word column.
               mode === 'menu' ? 'truncate' : 'break-words',
-              checked ? 'text-ink-soft line-through' : 'text-ink',
+              checked || muted ? 'text-ink-soft' : 'text-ink',
+              checked ? 'line-through' : '',
             ].join(' ')}
           >
             {title}

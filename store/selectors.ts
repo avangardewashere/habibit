@@ -1,5 +1,6 @@
 import { addDaysToKey, dateKey, mondayIndex } from '@/lib/date';
 import { completionKey } from '@/lib/keys';
+import { isDueOn, parseSchedule, weekOf, weekStart } from '@/lib/schedule';
 import type { DateKey, Habit, HabibitState, Task } from '@/lib/types';
 
 /*
@@ -49,9 +50,40 @@ export function isCompleted(state: HabibitState, habitId: string, date: DateKey)
   return state.completions[completionKey(habitId, date)]?.done === true;
 }
 
-/** How many active habits are checked on `date` — the "2/3" in the section header. */
+/**
+ * Is this habit meant to be kept on this day? (v4 Block C.)
+ *
+ * The one place the app asks. `lib/schedule.ts` holds the rule; this hands it
+ * the habit's own history, which N-times-a-week needs and the others ignore.
+ */
+export function isDue(state: HabibitState, habit: Habit, day: DateKey): boolean {
+  return isDueOn(parseSchedule(habit.schedule), day, (other) => isCompleted(state, habit.id, other));
+}
+
+/** Habits due today, in display order. */
+export function dueHabits(state: HabibitState, today: DateKey): Habit[] {
+  return activeHabits(state).filter((h) => isDue(state, h, today));
+}
+
+/**
+ * Habits that are not due today — shown below the others, in a quieter colour
+ * (your choice), rather than hidden. A habit you can't see is a habit you
+ * forget you have, and it stays tappable for the day you do it anyway.
+ */
+export function restingHabits(state: HabibitState, today: DateKey): Habit[] {
+  return activeHabits(state).filter((h) => !isDue(state, h, today));
+}
+
+/**
+ * How many of today's habits are checked — the "2/3" in the section header.
+ *
+ * Only habits actually due today are counted, on both sides of the slash: a
+ * Monday-only habit shouldn't make Tuesday look unfinished. A habit you tick on
+ * a day it wasn't due is kept and shown as done, but doesn't move this count —
+ * it can't, or the total would read 3/2.
+ */
 export function completedCount(state: HabibitState, date: DateKey): number {
-  return activeHabits(state).filter((h) => isCompleted(state, h.id, date)).length;
+  return dueHabits(state, date).filter((h) => isCompleted(state, h.id, date)).length;
 }
 
 export function openTasks(state: HabibitState): Task[] {
@@ -77,27 +109,78 @@ export function recentDays(today: DateKey, count = 7): DateKey[] {
 }
 
 /**
- * How many days in a row this habit has been kept, counting back from today.
+ * A run of kept days — or, for an N-times-a-week habit, of kept **weeks**.
  *
- * An unfinished *today* does not break the streak: if today is not done yet the
- * count starts from yesterday. A streak therefore stays alive all day and only
- * reaches zero once a whole day has actually been missed — rather than reading 0
- * every morning until you tick something.
- *
- * Walks back until the first gap, so it costs one map lookup per day of streak.
- * Completions dated in the future are ignored, because the walk never starts
- * later than today.
+ * The unit travels with the number because the badge has to say which it is:
+ * "3" under a three-times-a-week habit means three weeks, and calling those
+ * days would be a lie.
  */
-export function currentStreak(state: HabibitState, habitId: string, today: DateKey): number {
-  let cursor = isCompleted(state, habitId, today) ? today : addDaysToKey(today, -1);
-  let streak = 0;
+export type Streak = { count: number; unit: 'day' | 'week' };
 
-  while (isCompleted(state, habitId, cursor)) {
-    streak += 1;
+const NO_STREAK: Streak = { count: 0, unit: 'day' };
+
+/**
+ * How long this habit has been kept up, counting back from today.
+ *
+ * Two rules hold for every kind of schedule:
+ *
+ * - **An unfinished today never breaks a streak.** If today isn't done yet the
+ *   count starts from yesterday, so a streak stays alive all day and only
+ *   reaches zero once a day has actually been missed.
+ * - **A day the habit wasn't due neither breaks the streak nor adds to it.** A
+ *   Mon/Wed/Fri habit kept every Mon, Wed and Fri has an unbroken streak, and
+ *   the Tuesdays in between are simply not part of the question.
+ *
+ * N times a week is counted in whole weeks instead: a week counts when it met
+ * its target, and the week in progress can't break anything either.
+ *
+ * A streak that resets for no reason is the fastest way to stop trusting a
+ * habit tracker, so every rule above is a test in `store/streaks.test.ts`.
+ */
+export function habitStreak(state: HabibitState, habit: Habit, today: DateKey): Streak {
+  const schedule = parseSchedule(habit.schedule);
+  const done = (day: DateKey) => isCompleted(state, habit.id, day);
+
+  if (schedule.kind === 'weekly') {
+    return { count: weeksMeetingTarget(done, schedule.times, today), unit: 'week' };
+  }
+
+  /*
+   * Where to stop. Walking back day by day ends at the first day that was due
+   * and missed — which always arrives, because every schedule has at least one
+   * due day a week. The habit's first day is a second floor, so a brand-new
+   * habit can't walk back through years of days that never existed. A run that
+   * reaches further back than the habit (a day backfilled in the strip) is
+   * still counted, because it was really kept.
+   */
+  const firstDay = dateKey(new Date(habit.createdAt));
+  let cursor = done(today) ? today : addDaysToKey(today, -1);
+  let count = 0;
+
+  while (done(cursor) || cursor >= firstDay) {
+    if (done(cursor)) count += 1;
+    else if (isDueOn(schedule, cursor, done)) break;
     cursor = addDaysToKey(cursor, -1);
   }
 
-  return streak;
+  return count === 0 ? NO_STREAK : { count, unit: 'day' };
+}
+
+/** Whole weeks, ending with this one, in which the habit hit N. */
+function weeksMeetingTarget(done: (day: DateKey) => boolean, times: number, today: DateKey): number {
+  const keptIn = (monday: DateKey) => weekOf(monday).filter(done).length;
+
+  let monday = weekStart(today);
+  // This week is still running, so falling short of the target so far can't
+  // break anything — the count simply starts from last week.
+  if (keptIn(monday) < times) monday = addDaysToKey(monday, -7);
+
+  let weeks = 0;
+  while (keptIn(monday) >= times) {
+    weeks += 1;
+    monday = addDaysToKey(monday, -7);
+  }
+  return weeks;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,16 +205,23 @@ export function reviewWeeks(today: DateKey, weeks = 4): DateKey[][] {
 /**
  * What one square in the calendar means.
  *
- * `before` and `future` are both blank on screen, and they are different
- * things: a habit you made last Tuesday didn't fail on the Monday before it.
+ * `before`, `future` and `unscheduled` are all quiet on screen, and they are
+ * three different things: a habit you made last Tuesday didn't fail on the
+ * Monday before it, and a Mon/Wed/Fri habit didn't fail on Thursday.
  */
-export type ReviewDay = 'done' | 'missed' | 'before' | 'future';
+export type ReviewDay = 'done' | 'missed' | 'unscheduled' | 'before' | 'future';
 
 export function reviewDay(state: HabibitState, habit: Habit, day: DateKey, today: DateKey): ReviewDay {
   if (day > today) return 'future';
   // The habit's first day, in the user's own timezone, like every other date here.
   if (day < dateKey(new Date(habit.createdAt))) return 'before';
-  return isCompleted(state, habit.id, day) ? 'done' : 'missed';
+  /*
+   * Done wins over everything. A day you kept is a day you kept, even if the
+   * habit isn't scheduled then any more — changing a schedule must never
+   * rewrite what you actually did.
+   */
+  if (isCompleted(state, habit.id, day)) return 'done';
+  return isDue(state, habit, day) ? 'missed' : 'unscheduled';
 }
 
 export type HabitReview = {
@@ -154,6 +244,10 @@ export function habitReview(state: HabibitState, habit: Habit, today: DateKey, w
   let run = 0;
   for (const { state: dayState } of days.flat()) {
     if (dayState === 'before' || dayState === 'future') continue;
+    // A day the habit wasn't due is not one of the days it could have been
+    // kept, and it doesn't interrupt a run either — the same rule the streak
+    // uses, so the two numbers can never disagree.
+    if (dayState === 'unscheduled') continue;
     possible += 1;
     if (dayState === 'done') {
       kept += 1;
