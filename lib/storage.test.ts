@@ -55,6 +55,7 @@ const sample: HabibitState = {
       updatedAt: '2026-09-08T00:00:00.000Z',
       archivedAt: null,
       position: null,
+      schedule: null,
       deletedAt: null,
     },
     {
@@ -64,6 +65,7 @@ const sample: HabibitState = {
       updatedAt: '2026-09-09T00:00:00.000Z',
       archivedAt: null,
       position: null,
+      schedule: null,
       deletedAt: '2026-09-09T00:00:00.000Z',
     },
   ],

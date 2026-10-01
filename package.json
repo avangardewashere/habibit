@@ -14,10 +14,11 @@
     "e2e": "playwright test",
     "smoke": "playwright test --config playwright.smoke.config.ts",
     "e2e:report": "playwright show-report",
-    "check": "npm run typecheck && npm run lint && npm test && npm run test:db && npm run e2e",
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:dst && npm run test:db && npm run e2e",
     "db:start": "supabase start -x studio,imgproxy,logflare,vector,supavisor",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
+    "test:dst": "vitest run --config vitest.dst.config.mts",
     "test:db": "vitest run --config vitest.db.config.mts"
   },
   "dependencies": {

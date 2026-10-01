@@ -1,7 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 import { findLocalSupabase, type LocalSupabase } from './test-support/local-supabase';
 
-const PORT = 3100;
+/*
+ * 3100 unless told otherwise. `reuseExistingServer` is on locally, and it only
+ * checks that *something* answers on the port — so another project's dev server
+ * sitting on 3100 gets used as if it were Habibit, and every test fails looking
+ * for a page that was never there. Set HABIBIT_E2E_PORT to run beside it.
+ */
+const PORT = Number(process.env.HABIBIT_E2E_PORT ?? 3100);
 
 /*
  * A throwaway VAPID public key, so the reminder settings exist in the test

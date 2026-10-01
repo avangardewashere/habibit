@@ -71,6 +71,7 @@ export function touchedBy(action: HabibitAction): OutboxKey | null {
     case 'RESTORE_HABIT':
     case 'RENAME_HABIT':
     case 'MOVE_HABIT':
+    case 'SET_SCHEDULE':
     case 'ARCHIVE_HABIT':
     case 'UNARCHIVE_HABIT':
       return `habit:${action.id}`;

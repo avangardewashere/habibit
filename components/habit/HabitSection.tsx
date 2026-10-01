@@ -16,9 +16,11 @@ import {
   isCompleted,
   recentDays,
 } from '@/store/selectors';
+import { describeSchedule, parseSchedule } from '@/lib/schedule';
 import { ArchivedHabits } from './ArchivedHabits';
 import { ArrangeList } from './ArrangeList';
 import { DayStrip } from './DayStrip';
+import { ScheduleSheet } from './ScheduleSheet';
 import { StreakBadge } from './StreakBadge';
 import { WeekdayHeader } from './WeekdayHeader';
 
@@ -32,10 +34,15 @@ export function HabitSection() {
   const { offer } = useUndo();
   const today = useToday();
   const [arrangingRequested, setArranging] = useState(false);
+  // Which habit's "how often?" sheet is open, by id — an id rather than the
+  // habit itself, so the sheet always shows what the store currently holds.
+  const [schedulingId, setScheduling] = useState<string | null>(null);
 
   const habits = activeHabits(state);
   const archived = archivedHabits(state);
   const done = today ? completedCount(state, today) : 0;
+  // Looked up fresh each render: archiving or deleting the habit closes the sheet.
+  const scheduling = habits.find((h) => h.id === schedulingId) ?? null;
   // Empty until the client knows the date, which keeps the server render honest.
   const days = today ? recentDays(today) : [];
 
@@ -109,9 +116,11 @@ export function HabitSection() {
                     offer(`Deleted “${habit.title}”`, () => dispatch({ type: 'RESTORE_HABIT', id: habit.id }));
                   }}
                   onRename={(title) => dispatch({ type: 'RENAME_HABIT', id: habit.id, title })}
+                  onSchedule={() => setScheduling(habit.id)}
                   onArchive={() => dispatch({ type: 'ARCHIVE_HABIT', id: habit.id })}
                   actionsLabel={`More actions for ${habit.title}`}
                   renameLabel={`Rename habit: ${habit.title}`}
+                  scheduleLabel={`How often ${habit.title} is due: ${describeSchedule(parseSchedule(habit.schedule))}`}
                   archiveLabel={`Archive ${habit.title}, keeping its history`}
                   deleteLabel={`Delete ${habit.title} and its whole completion history`}
                   trailing={today ? <StreakBadge streak={currentStreak(state, habit.id, today)} /> : null}
@@ -150,6 +159,15 @@ export function HabitSection() {
         habits={archived}
         onUnarchive={(id) => dispatch({ type: 'UNARCHIVE_HABIT', id })}
       />
+
+      {scheduling && (
+        <ScheduleSheet
+          habit={scheduling}
+          today={today}
+          onChoose={(schedule) => dispatch({ type: 'SET_SCHEDULE', id: scheduling.id, schedule })}
+          onClose={() => setScheduling(null)}
+        />
+      )}
     </section>
   );
 }

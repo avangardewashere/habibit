@@ -137,6 +137,15 @@ for (const [themeName, t] of [
       // The Undo bar is the page's colours inverted. Its button deliberately uses
       // this pair too, not accent-on-ink, which measured 2.08:1 in dark mode.
       ['text on the undo bar', t.surface, t.ink],
+      /*
+       * v4 Block B: the how-often sheet. A chosen day shows a *letter*, not an
+       * icon, so it needs 4.5:1 — and the accent pair used for the tick and the
+       * + glyph is only 3.39:1 in light mode, which is fine for a shape and not
+       * for text. It uses the all-done badge's pair instead, which is also what
+       * "chosen" means everywhere else in the app.
+       */
+      ['a day chosen in the how-often sheet', t.doneFg, t.doneBg],
+      ['a day not chosen there', t.ink, t.card],
     ])('%s reaches 4.5:1', (_label, fg, bg) => {
       expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5);
     });

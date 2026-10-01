@@ -1,4 +1,5 @@
 import { isOrderKey } from '@/lib/order';
+import { isStoredSchedule } from '@/lib/schedule';
 import type { Completion, CompletionKey, Habit, HabibitState, Task } from '@/lib/types';
 
 /*
@@ -20,6 +21,7 @@ export type HabitRow = {
   archived_at: string | null;
   deleted_at: string | null;
   position: string | null;
+  schedule: string | null;
 };
 
 export type TaskRow = {
@@ -49,6 +51,7 @@ export const habitToRow = (h: Habit): HabitRow => ({
   archived_at: h.archivedAt,
   deleted_at: h.deletedAt,
   position: h.position,
+  schedule: h.schedule,
 });
 
 export const rowToHabit = (r: HabitRow): Habit => ({
@@ -60,6 +63,13 @@ export const rowToHabit = (r: HabitRow): Habit => ({
   deletedAt: isoOrNull(r.deleted_at),
   // Rows written by an older build have no position; anything malformed counts as none.
   position: isOrderKey(r.position) ? r.position : null,
+  /*
+   * A schedule kind this build has never heard of is kept exactly as stored,
+   * not turned into "every day" — otherwise the next edit made here would
+   * upload that and erase a newer build's choice for every device. Only a value
+   * that isn't a schedule at all is dropped. See lib/schedule.ts.
+   */
+  schedule: isStoredSchedule(r.schedule) ? r.schedule : null,
 });
 
 export const taskToRow = (t: Task): TaskRow => ({
