@@ -14,7 +14,7 @@ const sheet = (page: Page) => page.getByRole('dialog');
 
 async function openSchedule(page: Page, title: string) {
   await moreActions(page, title).click();
-  await page.getByRole('button', { name: new RegExp(`^How often ${title} is due`) }).click();
+  await page.getByRole('button', { name: new RegExp(`^When ${title} is due`) }).click();
   await expect(sheet(page)).toBeVisible();
 }
 

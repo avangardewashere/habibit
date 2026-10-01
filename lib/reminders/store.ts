@@ -99,6 +99,85 @@ export async function saveDevice(subscription: DeviceSubscription): Promise<bool
   return !error;
 }
 
+// ---------------------------------------------------------------------------
+// One habit's own reminder (v4 Block E). As well as the daily nudge, never
+// instead of it.
+// ---------------------------------------------------------------------------
+
+export type HabitReminder = {
+  enabled: boolean;
+  /** "HH:MM" on a 24-hour clock, on your own clock. */
+  time: string;
+  /**
+   * Whether the notification may say which habit it is. **Off by default**:
+   * v3's rule is that a lock screen is public, and this is the exception you
+   * choose, habit by habit.
+   */
+  sayName: boolean;
+};
+
+export const HABIT_REMINDER_OFF: HabitReminder = {
+  enabled: false,
+  time: DEFAULT_REMINDER_TIME,
+  sayName: false,
+};
+
+/** This habit's reminder, or `null` if it can't be read (signed out, no signal). */
+export async function loadHabitReminder(habitId: string): Promise<HabitReminder | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const { data, error } = await attempt(() =>
+    supabase.from('habit_reminders').select('enabled,local_time,say_name').eq('habit_id', habitId).maybeSingle(),
+  );
+  if (error) return null;
+  // No row is not a failure: this habit has never had a reminder.
+  if (!data) return HABIT_REMINDER_OFF;
+
+  return {
+    enabled: data.enabled === true,
+    time: toReminderTime(data.local_time),
+    // Anything but a stored `true` is private, including a row from a build
+    // that doesn't have this column yet.
+    sayName: data.say_name === true,
+  };
+}
+
+/**
+ * Writes the whole reminder, so turning it off, moving the time and changing
+ * the naming choice share one path.
+ *
+ * It also records which clock the time is on. That lives in the account's
+ * reminder settings, one row per person, and only the timezone is written —
+ * an upsert touches just the columns it sends, so switching on a habit's
+ * reminder can never turn the daily nudge on or off by accident.
+ */
+export async function saveHabitReminder(habitId: string, reminder: HabitReminder): Promise<boolean> {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error: zoneError } = await attempt(() =>
+    supabase
+      .from('reminder_settings')
+      .upsert({ timezone: deviceTimezone(), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }),
+  );
+  if (zoneError) return false;
+
+  const { error } = await attempt(() =>
+    supabase.from('habit_reminders').upsert(
+      {
+        habit_id: habitId,
+        enabled: reminder.enabled,
+        local_time: reminder.time,
+        say_name: reminder.sayName,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,habit_id' },
+    ),
+  );
+  return !error;
+}
+
 /** Forgets one device. The others keep their reminders. */
 export async function forgetDevice(endpoint: string): Promise<boolean> {
   const supabase = getSupabase();

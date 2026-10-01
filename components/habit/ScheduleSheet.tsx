@@ -16,6 +16,7 @@ import {
   type Weekday,
 } from '@/lib/schedule';
 import type { DateKey, Habit } from '@/lib/types';
+import { HabitReminder } from './HabitReminder';
 
 /**
  * How often one habit is meant to be kept.
@@ -81,11 +82,12 @@ export function ScheduleSheet({
         <div className="mb-5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 id={titleId} className="break-words text-2xl font-extrabold tracking-tight text-ink">
-              How often?
+              When?
             </h2>
             <p className="mt-0.5 break-words text-sm text-ink-soft">
               {habit.title} — {describeSchedule(schedule)}
             </p>
+            <p className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-soft">How often</p>
           </div>
           <button
             ref={closeRef}
@@ -169,6 +171,9 @@ export function ScheduleSheet({
             </div>
           </Choice>
         </div>
+
+        {/* v4 Block E: being told about this one habit, as well as the daily nudge. */}
+        <HabitReminder habitId={habit.id} habitTitle={habit.title} />
 
         <p className="mt-5 text-sm text-ink-soft">
           Your history is kept whatever you choose here, and changing it later never rewrites the past.

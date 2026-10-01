@@ -237,12 +237,12 @@ export function ItemRow({
                   onSchedule();
                 }}
                 aria-label={scheduleLabel}
-                /* "Days" rather than "Schedule": four pills have to fit beside a
-                   title on a 375px phone, and the word people use for Mon/Wed/Fri
-                   is days. */
+                /* "When" rather than "Schedule": four pills have to fit beside a
+                   title on a 375px phone, and since v4 Block E this one holds
+                   both which days a habit is due and when to be reminded. */
                 className="min-h-11 touch-manipulation rounded-full border border-ink-soft bg-card px-3 text-xs font-extrabold text-ink transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                Days
+                When
               </button>
             )}
             {onArchive && (
