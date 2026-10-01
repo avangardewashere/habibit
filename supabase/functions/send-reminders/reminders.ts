@@ -34,7 +34,15 @@ export type Device = {
  */
 export type SendOutcome = { ok: true } | { ok: false; gone: boolean };
 
-export type Notification = { title: string; body: string };
+/**
+ * `tag` decides what a new notification replaces. The daily nudge keeps one,
+ * so a week of unread ones is a single line rather than a column — but each
+ * habit carries its own, or two habits due at eight o'clock would arrive as
+ * one (public/sw.js).
+ */
+export type Notification = { title: string; body: string; tag: string };
+
+export const DAILY_TAG = 'habibit-reminder';
 
 /** Sends one notification to one device. Supplied by the caller. */
 export type Send = (device: Device, notification: Notification) => Promise<SendOutcome>;
@@ -59,7 +67,44 @@ export function reminderNotification(unfinished: number): Notification {
   return {
     title: 'Habibit',
     body: unfinished === 1 ? '1 habit left today.' : `${unfinished} habits left today.`,
+    tag: DAILY_TAG,
   };
+}
+
+/** One habit's reminder, as `claim_due_habit_reminders` returns it (v4 Block F). */
+export type DueHabitReminder = {
+  user_id: string;
+  habit_id: string;
+  title: string;
+  say_name: boolean;
+  local_date: string;
+};
+
+/** Long enough for any real habit; short enough not to fill a lock screen. */
+export const LONGEST_SPOKEN_TITLE = 60;
+
+/**
+ * What a per-habit reminder says.
+ *
+ * The habit's name appears **only** when that habit was told it may. The
+ * default is v3's rule — a lock screen is public, and someone else's glance is
+ * not ours to give away — and `say_name` is the exception, chosen one habit at
+ * a time (v4 Block E).
+ *
+ * Note what this function cannot do: it has no way to find a title except the
+ * one handed to it, and it drops that title on the floor unless `say_name` is
+ * true. There is no code path from "a habit exists" to "its name is on a lock
+ * screen" that doesn't go through someone choosing it.
+ */
+export function habitReminderNotification(reminder: DueHabitReminder): Notification {
+  // Its own tag, so two habits due at the same time are two notifications —
+  // and tomorrow's reminder for *this* habit replaces today's unread one.
+  const tag = `habibit-habit:${reminder.habit_id}`;
+  if (!reminder.say_name) return { title: 'Habibit', body: 'Time for one of your habits.', tag };
+
+  const name = reminder.title.trim().slice(0, LONGEST_SPOKEN_TITLE);
+  // A title that is only spaces would leave "Time for ." on the screen.
+  return { title: 'Habibit', body: name ? `Time for ${name}.` : 'Time for one of your habits.', tag };
 }
 
 /** Groups devices by who owns them, so each person's devices are found once. */
@@ -90,23 +135,54 @@ export async function sendReminders(
   devices: readonly Device[],
   send: Send,
 ): Promise<SendReport> {
+  return sendAll(
+    due.map((person) => ({ user_id: person.user_id, notification: reminderNotification(person.unfinished) })),
+    devices,
+    send,
+  );
+}
+
+/**
+ * The same, for the per-habit reminders (v4 Block F).
+ *
+ * One person can be due for several at once — two habits at eight o'clock —
+ * and each is its own notification, because collapsing them into "2 things to
+ * do" is what the account-wide nudge already says.
+ */
+export async function sendHabitReminders(
+  due: readonly DueHabitReminder[],
+  devices: readonly Device[],
+  send: Send,
+): Promise<SendReport> {
+  return sendAll(
+    due.map((reminder) => ({ user_id: reminder.user_id, notification: habitReminderNotification(reminder) })),
+    devices,
+    send,
+  );
+}
+
+/** One notification, addressed to everyone's devices, with nothing shared between them. */
+async function sendAll(
+  items: readonly { user_id: string; notification: Notification }[],
+  devices: readonly Device[],
+  send: Send,
+): Promise<SendReport> {
   const byUser = devicesByUser(devices);
   const report: SendReport = { sent: 0, failed: 0, gone: [], unreachable: [] };
 
   const attempts: { device: Device; outcome: Promise<SendOutcome> }[] = [];
 
-  for (const person of due) {
-    const theirs = byUser.get(person.user_id) ?? [];
+  for (const item of items) {
+    const theirs = byUser.get(item.user_id) ?? [];
     if (theirs.length === 0) {
-      report.unreachable.push(person.user_id);
+      report.unreachable.push(item.user_id);
       continue;
     }
-    const notification = reminderNotification(person.unfinished);
     for (const device of theirs) {
       attempts.push({
         device,
         // Started here, awaited below: the sends overlap rather than queueing.
-        outcome: send(device, notification).catch(() => ({ ok: false, gone: false }) as SendOutcome),
+        outcome: send(device, item.notification).catch(() => ({ ok: false, gone: false }) as SendOutcome),
       });
     }
   }

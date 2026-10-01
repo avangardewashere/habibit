@@ -6,7 +6,7 @@
 
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { isAuthorised, isGone, sendReminders, type Device } from './reminders.ts';
+import { isAuthorised, isGone, sendHabitReminders, sendReminders, type Device } from './reminders.ts';
 
 /*
  * Habibit v3 Block E: the scheduled sender.
@@ -84,26 +84,42 @@ Deno.serve(async (request: Request) => {
 
   const supabase = createClient(supabaseUrl, secretKey, { auth: { persistSession: false } });
 
-  // `claim` rather than `ask`: it writes down that today's reminder has gone
-  // before handing the list over, so two overlapping runs cannot both send.
+  /*
+   * `claim` rather than `ask`: each writes down that today's reminder has gone
+   * before handing the list over, so two overlapping runs cannot both send.
+   *
+   * Two claims, taken one after the other and sent together: the account-wide
+   * nudge (v3) and the per-habit reminders (v4 Block F). They are separate
+   * rows with separate "already sent today" marks, so a failure in one leaves
+   * the other exactly as it was.
+   */
   const { data: due, error: dueError } = await supabase.rpc('claim_due_reminders');
   if (dueError) return answer({ error: dueError.message }, 500);
-  if (!due || due.length === 0) return answer({ due: 0, sent: 0 });
 
+  const { data: habitsDue, error: habitError } = await supabase.rpc('claim_due_habit_reminders');
+  if (habitError) return answer({ error: habitError.message }, 500);
+
+  const people = due ?? [];
+  const habitReminders = habitsDue ?? [];
+  if (people.length === 0 && habitReminders.length === 0) return answer({ due: 0, habits: 0, sent: 0 });
+
+  const userIds = [...new Set([...people, ...habitReminders].map((row) => row.user_id))];
   const { data: devices, error: deviceError } = await supabase
     .from('push_subscriptions')
     .select('user_id,endpoint,p256dh,auth')
-    .in(
-      'user_id',
-      due.map((person) => person.user_id),
-    );
+    .in('user_id', userIds);
   if (deviceError) return answer({ error: deviceError.message }, 500);
 
-  const report = await sendReminders(due, devices ?? [], pushToDevice);
+  const registered = devices ?? [];
+  const reports = [
+    await sendReminders(people, registered, pushToDevice),
+    await sendHabitReminders(habitReminders, registered, pushToDevice),
+  ];
 
   // Addresses the push service says are dead. Keeping them would mean trying
   // every one of them, every day, forever.
-  for (const device of report.gone) {
+  const forgotten = new Map(reports.flatMap((r) => r.gone).map((d) => [`${d.user_id}:${d.endpoint}`, d]));
+  for (const device of forgotten.values()) {
     await supabase
       .from('push_subscriptions')
       .delete()
@@ -111,11 +127,15 @@ Deno.serve(async (request: Request) => {
       .eq('endpoint', device.endpoint);
   }
 
+  const total = (pick: (r: { sent: number; failed: number; unreachable: string[] }) => number) =>
+    reports.reduce((sum, r) => sum + pick(r), 0);
+
   return answer({
-    due: due.length,
-    sent: report.sent,
-    failed: report.failed,
-    forgotten: report.gone.length,
-    unreachable: report.unreachable.length,
+    due: people.length,
+    habits: habitReminders.length,
+    sent: total((r) => r.sent),
+    failed: total((r) => r.failed),
+    forgotten: forgotten.size,
+    unreachable: total((r) => r.unreachable.length),
   });
 });

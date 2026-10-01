@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  habitReminderNotification,
   isAuthorised,
   isGone,
   reminderNotification,
+  sendHabitReminders,
   sendReminders,
   type Device,
+  type DueHabitReminder,
   type DueReminder,
   type Notification,
   type SendOutcome,
@@ -47,8 +50,9 @@ function recorder(answers: Record<string, SendOutcome> = {}) {
 
 describe('what the notification says', () => {
   it('V3E-01 · counts what is left, and says it in plain words', () => {
-    expect(reminderNotification(1)).toEqual({ title: 'Habibit', body: '1 habit left today.' });
-    expect(reminderNotification(3)).toEqual({ title: 'Habibit', body: '3 habits left today.' });
+    // One tag for the daily nudge, so a week of unread ones stays one line.
+    expect(reminderNotification(1)).toEqual({ title: 'Habibit', body: '1 habit left today.', tag: 'habibit-reminder' });
+    expect(reminderNotification(3)).toEqual({ title: 'Habibit', body: '3 habits left today.', tag: 'habibit-reminder' });
   });
 
   it('V3E-02 · ⭐ says a count and nothing else, whatever the count', () => {
@@ -189,5 +193,118 @@ describe('the rest', () => {
     expect(isAuthorised('Bearer anything', undefined)).toBe(false);
     expect(isAuthorised('Bearer ', '')).toBe(false);
     expect(isAuthorised(null, '')).toBe(false);
+  });
+});
+
+
+/*
+ * v4 Block F: the per-habit reminders.
+ *
+ * The decision this block has to keep is Block E's: a habit's name reaches a
+ * lock screen only when that habit was told it may.
+ */
+
+const habitDue = (user: string, overrides: Partial<DueHabitReminder> = {}): DueHabitReminder => ({
+  user_id: user,
+  habit_id: 'h1',
+  title: 'Take medication',
+  say_name: false,
+  local_date: '2026-10-02',
+  ...overrides,
+});
+
+describe('what a per-habit reminder says', () => {
+  it('V4F-01 · ⭐ says nothing about the habit unless that habit said it may', () => {
+    expect(habitReminderNotification(habitDue('u1'))).toEqual({
+      title: 'Habibit',
+      body: 'Time for one of your habits.',
+      // Its own tag, so two habits due at once don't collapse into one.
+      tag: 'habibit-habit:h1',
+    });
+  });
+
+  it('V4F-02 · ⭐ names it when it may', () => {
+    expect(habitReminderNotification(habitDue('u1', { say_name: true }))).toEqual({
+      title: 'Habibit',
+      body: 'Time for Take medication.',
+      tag: 'habibit-habit:h1',
+    });
+  });
+
+  it('V4F-03 · a very long name is cut, not spilled across the lock screen', () => {
+    const long = habitReminderNotification(habitDue('u1', { say_name: true, title: 'x'.repeat(200) }));
+    expect(long.body.length).toBeLessThanOrEqual(80);
+  });
+
+  it('V4F-04 · a title that is only spaces falls back rather than saying "Time for ."', () => {
+    expect(habitReminderNotification(habitDue('u1', { say_name: true, title: '   ' })).body).toBe(
+      'Time for one of your habits.',
+    );
+  });
+});
+
+describe('sending the per-habit reminders', () => {
+  it('V4F-05 · ⭐ every device of the person gets it', async () => {
+    const recording = recorder();
+    const devices = [device('u1', 'https://push/a'), device('u1', 'https://push/b')];
+
+    const report = await sendHabitReminders([habitDue('u1', { say_name: true })], devices, recording.send);
+
+    expect(report).toMatchObject({ sent: 2, failed: 0 });
+    expect(recording.calls.map((c) => c.notification.body)).toEqual([
+      'Time for Take medication.',
+      'Time for Take medication.',
+    ]);
+  });
+
+  it('V4F-06 · ⭐ two habits due at once are two notifications, each with its own wording', async () => {
+    const recording = recorder();
+    const due = [
+      habitDue('u1', { habit_id: 'h1', title: 'Take medication', say_name: true }),
+      habitDue('u1', { habit_id: 'h2', title: 'Stretch', say_name: false }),
+    ];
+
+    await sendHabitReminders(due, [device('u1', 'https://push/a')], recording.send);
+
+    expect(recording.calls.map((c) => c.notification.body)).toEqual([
+      'Time for Take medication.',
+      'Time for one of your habits.',
+    ]);
+  });
+
+  it('V4F-07 · ⭐ one device failing does not stop anybody else', async () => {
+    const recording = recorder({ 'https://push/broken': { ok: false, gone: false } });
+    const devices = [device('u1', 'https://push/broken'), device('u2', 'https://push/fine')];
+
+    const report = await sendHabitReminders([habitDue('u1'), habitDue('u2')], devices, recording.send);
+
+    expect(report).toMatchObject({ sent: 1, failed: 1 });
+    expect(recording.calls).toHaveLength(2);
+  });
+
+  it('V4F-08 · ⭐ a send that throws is a failure, not the end of the run', async () => {
+    const devices = [device('u1', 'https://push/throws'), device('u2', 'https://push/fine')];
+    const send = async (target: Device) => {
+      if (target.endpoint.endsWith('throws')) throw new Error('push service exploded');
+      return { ok: true } as SendOutcome;
+    };
+
+    await expect(sendHabitReminders([habitDue('u1'), habitDue('u2')], devices, send)).resolves.toMatchObject({
+      sent: 1,
+      failed: 1,
+    });
+  });
+
+  it('V4F-09 · a dead address is reported for deleting, and somebody with no device is reported too', async () => {
+    const recording = recorder({ 'https://push/dead': { ok: false, gone: true } });
+
+    const report = await sendHabitReminders(
+      [habitDue('u1'), habitDue('u2')],
+      [device('u1', 'https://push/dead')],
+      recording.send,
+    );
+
+    expect(report.gone.map((d) => d.endpoint)).toEqual(['https://push/dead']);
+    expect(report.unreachable).toEqual(['u2']);
   });
 });
