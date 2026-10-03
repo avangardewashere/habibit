@@ -70,6 +70,8 @@ describe('habits', () => {
         position: keyBetween(null, null),
         // Every day until you say otherwise (v4 Block B).
         schedule: null,
+        icon: null,
+        colour: null,
       },
     ]);
   });

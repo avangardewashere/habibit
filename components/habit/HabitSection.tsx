@@ -19,11 +19,13 @@ import {
   recentDays,
   restingHabits,
 } from '@/store/selectors';
+import { resolveColour, resolveIcon } from '@/lib/look';
 import { describeSchedule, parseSchedule } from '@/lib/schedule';
 import type { Habit } from '@/lib/types';
 import { ArchivedHabits } from './ArchivedHabits';
 import { ArrangeList } from './ArrangeList';
 import { DayStrip } from './DayStrip';
+import { HabitIcon } from './HabitIcon';
 import { ScheduleSheet } from './ScheduleSheet';
 import { StreakBadge } from './StreakBadge';
 import { WeekdayHeader } from './WeekdayHeader';
@@ -62,10 +64,19 @@ export function HabitSection() {
   const rows = today ? dueHabits(state, today) : habits;
   const resting = today ? restingHabits(state, today) : [];
 
-  const row = (habit: Habit, atRest: boolean) => (
+  const row = (habit: Habit, atRest: boolean) => {
+    // What to draw, which is not the same as what is stored: a habit nobody has
+    // chosen for still gets a colour from its id and an icon from its title
+    // (v5 Block A, lib/look.ts).
+    const colour = resolveColour(habit.colour, habit.id);
+    const icon = resolveIcon(habit.icon, habit.title);
+
+    return (
     <ItemRow
       key={habit.id}
       title={habit.title}
+      colour={colour}
+      glyph={icon ? <HabitIcon name={icon} className="h-4 w-4" /> : undefined}
       muted={atRest}
       checked={today ? isCompleted(state, habit.id, today) : false}
       onToggle={() => today && dispatch({ type: 'TOGGLE_COMPLETION', habitId: habit.id, dateKey: today })}
@@ -78,10 +89,10 @@ export function HabitSection() {
       onArchive={() => dispatch({ type: 'ARCHIVE_HABIT', id: habit.id })}
       actionsLabel={`More actions for ${habit.title}`}
       renameLabel={`Rename habit: ${habit.title}`}
-      scheduleLabel={`When ${habit.title} is due, and whether to remind you: ${describeSchedule(parseSchedule(habit.schedule))}`}
+      scheduleLabel={`Edit ${habit.title}: its colour and icon, when it is due, and whether to remind you`}
       archiveLabel={`Archive ${habit.title}, keeping its history`}
       deleteLabel={`Delete ${habit.title} and its whole completion history`}
-      trailing={today ? <StreakBadge streak={habitStreak(state, habit, today)} /> : null}
+      trailing={today ? <StreakBadge streak={habitStreak(state, habit, today)} colour={colour} /> : null}
       below={
         today ? (
           <>
@@ -103,7 +114,8 @@ export function HabitSection() {
         ) : null
       }
     />
-  );
+    );
+  };
 
   return (
     <section className="mb-7">
@@ -200,6 +212,7 @@ export function HabitSection() {
           habit={scheduling}
           today={today}
           onChoose={(schedule) => dispatch({ type: 'SET_SCHEDULE', id: scheduling.id, schedule })}
+          onChooseLook={(icon, colour) => dispatch({ type: 'SET_LOOK', id: scheduling.id, icon, colour })}
           onClose={() => setScheduling(null)}
         />
       )}

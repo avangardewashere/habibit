@@ -1,3 +1,4 @@
+import { isStoredLook } from '@/lib/look';
 import { isOrderKey } from '@/lib/order';
 import { isStoredSchedule } from '@/lib/schedule';
 import type { Completion, CompletionKey, Habit, HabibitState, Task } from '@/lib/types';
@@ -22,6 +23,8 @@ export type HabitRow = {
   deleted_at: string | null;
   position: string | null;
   schedule: string | null;
+  icon: string | null;
+  colour: string | null;
 };
 
 export type TaskRow = {
@@ -52,6 +55,8 @@ export const habitToRow = (h: Habit): HabitRow => ({
   deleted_at: h.deletedAt,
   position: h.position,
   schedule: h.schedule,
+  icon: h.icon,
+  colour: h.colour,
 });
 
 export const rowToHabit = (r: HabitRow): Habit => ({
@@ -70,6 +75,13 @@ export const rowToHabit = (r: HabitRow): Habit => ({
    * that isn't a schedule at all is dropped. See lib/schedule.ts.
    */
   schedule: isStoredSchedule(r.schedule) ? r.schedule : null,
+  /*
+   * Same rule, and the same reason: an icon or colour a newer build chose is
+   * kept exactly as stored rather than cleared, or the next edit made here
+   * would upload the loss to every device. See lib/look.ts.
+   */
+  icon: isStoredLook(r.icon) ? r.icon : null,
+  colour: isStoredLook(r.colour) ? r.colour : null,
 });
 
 export const taskToRow = (t: Task): TaskRow => ({

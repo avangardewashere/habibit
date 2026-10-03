@@ -24,6 +24,8 @@ function state(schedule: string | null, kept: DateKey[]): HabibitState {
         archivedAt: null,
         position: null,
         schedule,
+        icon: null,
+        colour: null,
         deletedAt: null,
       },
     ],

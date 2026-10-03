@@ -49,7 +49,7 @@ test('V4E-50 · ⭐ a habit can be given its own reminder, private by default', 
   await addHabit(page, 'Take medication');
 
   await moreActions(page, 'Take medication').click();
-  await page.getByRole('button', { name: /^When Take medication is due/ }).click();
+  await page.getByRole('button', { name: /^Edit Take medication:/ }).click();
   const sheet = page.getByRole('dialog');
 
   // Longer than the default: the section waits for this browser's service
@@ -73,7 +73,7 @@ test('V4E-50 · ⭐ a habit can be given its own reminder, private by default', 
   // It is really in the account, not just on screen: close the sheet, reopen it.
   await page.getByRole('button', { name: 'Close' }).click();
   await moreActions(page, 'Take medication').click();
-  await page.getByRole('button', { name: /^When Take medication is due/ }).click();
+  await page.getByRole('button', { name: /^Edit Take medication:/ }).click();
 
   await expect(page.getByRole('button', { name: 'Remind me about Take medication' })).toHaveAttribute(
     'aria-pressed',
@@ -91,7 +91,7 @@ test('V4E-51 · ⭐ signed out, the sheet says reminders need an account rather 
   await addHabit(page, 'Stretch');
 
   await moreActions(page, 'Stretch').click();
-  await page.getByRole('button', { name: /^When Stretch is due/ }).click();
+  await page.getByRole('button', { name: /^Edit Stretch:/ }).click();
 
   await expect(page.getByText(/Reminders need an account/)).toBeVisible();
   await expect(page.getByRole('button', { name: /^Remind me about/ })).toHaveCount(0);

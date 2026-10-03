@@ -28,6 +28,8 @@ function habit(schedule: string | null): Habit {
     deletedAt: null,
     position: null,
     schedule,
+    icon: null,
+    colour: null,
   };
 }
 
@@ -54,6 +56,7 @@ function Harness({
         onChoose(schedule);
         setStored(formatSchedule(schedule));
       }}
+      onChooseLook={() => {}}
       onClose={onClose}
     />
   );
@@ -74,7 +77,14 @@ describe('the how-often sheet', () => {
   it('V4B-42 · ⭐ says what the habit is set to now', () => {
     open('weekdays:0,2,4');
 
-    expect(screen.getByRole('dialog')).toHaveTextContent('Drink water — Mon, Wed and Fri');
+    /*
+     * v5 Block A moved these apart: the sheet is now titled with the habit,
+     * because it holds the look as well as the timing, and the schedule is the
+     * line beneath. Same two facts on screen, so this still checks what it
+     * always checked — one assertion each instead of one string.
+     */
+    expect(screen.getByRole('heading', { name: 'Drink water' })).toBeVisible();
+    expect(screen.getByRole('dialog')).toHaveTextContent('Mon, Wed and Fri');
     expect(screen.getByRole('radio', { name: /Certain days/ })).toBeChecked();
     expect(day('Monday')).toHaveAttribute('aria-pressed', 'true');
     expect(day('Tuesday')).toHaveAttribute('aria-pressed', 'false');

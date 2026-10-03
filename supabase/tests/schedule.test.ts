@@ -50,6 +50,8 @@ const habit = (title: string, updated = 0, id: string = crypto.randomUUID()): Ha
   archivedAt: null,
   position: null,
   schedule: null,
+  icon: null,
+  colour: null,
   deletedAt: null,
 });
 
