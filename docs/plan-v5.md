@@ -149,3 +149,48 @@ them alone — the v4 Block B proof, repeated), component tests for the circle a
 and a browser test that adds a habit and sees it arrive with a colour.
 
 ### Then: write `docs/qa/v5-a-habit-look.md` and stop
+
+---
+
+# Block B — Somewhere to go
+
+A bottom bar with three places: **Today**, **Progress**, **Settings**.
+
+## Decided at the start of the block
+
+- **Tabs on the one page, not three pages.** The service worker caches the single page this app
+  has, and an uncached navigation offline falls back to it — so `/progress` opened with no signal
+  would quietly show Today. Every screen added since v2 has been a sheet for exactly this reason.
+  The tabs switch views in place and live in the address as `#progress` / `#settings`, so the
+  back button, a refresh and a shared link all still land on the right tab, online or off.
+- **Plain links, not script.** Each tab is an `<a href="#progress">`. The browser already knows
+  how to put a hash in history and take it out again; nothing has to imitate that.
+- **The account button stays in Today's header.** An avatar top-right is where people look for
+  it, and it carries the sync dot. Its panel *also* appears in Settings — the same component.
+- **The theme button and the review button leave the header.** Theme becomes a Settings row; the
+  review becomes the Progress tab. The header is left with the wordmark, the date and the avatar.
+
+## Progress
+
+1. **This week**: done out of due, Monday to today, and a bar per day — today's bar so far, the
+   days to come drawn empty, a day with nothing due drawn as a rest day rather than a zero.
+2. **Highlights**: the longest streak going (and whose), the best run ever, check-ins in total.
+3. **History**: the review's four-week and year calendars, moved here and drawn in each habit's
+   own colour from Block A.
+
+Every number reads the same rules the list does (`reviewDay`, `habitStreak`, `bestEver`), so no
+figure on Progress can disagree with a badge on Today.
+
+## Settings
+
+Appearance (the theme, as three rows instead of a popup) · Account & sync (when this build has
+accounts) · About (version, privacy, what Habibit keeps and where).
+
+## The risk, checked before building
+
+The plan's warning was that a tab bar advertises thin tabs. Progress has three sections built on
+selectors that already exist; Settings has three groups in a build with accounts. **Without**
+accounts Settings is only Appearance and About — thin, and that is the state the live site is in
+until the Vercel setting is fixed. Noted rather than padded with invented settings.
+
+### Then: write `docs/qa/v5-b-navigation.md` and stop

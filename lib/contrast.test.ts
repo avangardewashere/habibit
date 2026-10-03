@@ -11,10 +11,13 @@ import { describe, expect, it } from 'vitest';
  * file is that it cannot happen again quietly.
  */
 
-const CSS = readFileSync(
-  fileURLToPath(new URL('../app/globals.css', import.meta.url)),
-  'utf8',
-);
+/*
+ * Line endings normalised: this repo converts to CRLF on a Windows checkout,
+ * and the markers below are written with a bare newline. Without this the whole
+ * file fails to load on Windows while passing on Linux CI — found in v5 Block
+ * B, the first time globals.css came back through a pull on Windows.
+ */
+const CSS = readFileSync(fileURLToPath(new URL('../app/globals.css', import.meta.url)), 'utf8').replace(/\r\n/g, '\n');
 
 /** Every `--name: value;` pair in a chunk of CSS. */
 function readVars(block: string): Record<string, string> {

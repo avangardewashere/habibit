@@ -1,5 +1,7 @@
-import type { ReviewDay } from '@/store/selectors';
+import { HUE_BG } from '@/components/ui/hue';
+import type { HabitColour } from '@/lib/look';
 import type { DateKey } from '@/lib/types';
+import type { ReviewDay } from '@/store/selectors';
 
 /**
  * A year of one habit, a square a day (v4 Block D).
@@ -15,7 +17,14 @@ import type { DateKey } from '@/lib/types';
  * squares read aloud is noise, and the sentence above the grid says the same
  * thing in words.
  */
-export function YearGrid({ weeks }: { weeks: { day: DateKey; state: ReviewDay }[][] }) {
+export function YearGrid({
+  weeks,
+  colour = null,
+}: {
+  weeks: { day: DateKey; state: ReviewDay }[][];
+  /** The habit's colour (v5 Block B), so a page of years reads habit by habit. */
+  colour?: HabitColour | null;
+}) {
   return (
     <div
       aria-hidden
@@ -30,7 +39,9 @@ export function YearGrid({ weeks }: { weeks: { day: DateKey; state: ReviewDay }[
           className={[
             'aspect-square rounded-[2px]',
             state === 'done'
-              ? 'bg-accent'
+              ? colour
+                ? HUE_BG[colour]
+                : 'bg-accent'
               : state === 'missed'
                 ? 'bg-ink-soft opacity-30'
                 : state === 'unscheduled'

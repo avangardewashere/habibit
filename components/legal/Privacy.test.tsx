@@ -80,9 +80,15 @@ describe('V3G: the privacy page', () => {
   it('V3G-05 · ⭐ it is reachable without an account', () => {
     // Signed out is exactly when someone is deciding whether to hand over an
     // email, so the page cannot live behind the account.
-    const home = source('app/page.tsx');
-    expect(home).toContain('<Footer />');
-    expect(source('components/layout/Footer.tsx')).toContain('href="/privacy"');
+    //
+    // Since v5 Block B the link is in Settings → About rather than a footer.
+    // Still reachable without an account: the tab bar is on every screen, and
+    // About is outside the account section, which is the only part that can
+    // be absent. The browser test V3G-20 walks the route for real.
+    expect(source('components/layout/Screens.tsx')).toContain('<BottomNav');
+    const settings = source('components/settings/SettingsScreen.tsx');
+    expect(settings).toContain('href="/privacy"');
+    expect(settings.indexOf('href="/privacy"')).toBeGreaterThan(settings.indexOf('<Group title="About">'));
   });
 
   it('V3G-06 · it says what happens with no account at all, first', () => {

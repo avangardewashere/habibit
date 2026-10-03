@@ -23,7 +23,7 @@ export function UndoBar({
 }) {
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]"
     >
       <div
         // Announced politely: it reports what just happened without interrupting.

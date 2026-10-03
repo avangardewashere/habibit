@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { addHabit, addTask, moreActions, openApp } from './helpers';
+import { addHabit, addTask, goTo, moreActions, openApp } from './helpers';
 
 /*
  * Ported from the layout, tap-target and PWA rows across every v0–v1 checklist.
@@ -36,9 +36,10 @@ test.describe('at the smallest supported phone width', () => {
     expect(del.x + del.width).toBeLessThanOrEqual(card.x + card.width);
   });
 
-  test('V3A-11 · the open theme menu fits on screen, with no sideways scroll', async ({ page }) => {
+  test('V3A-11 · the theme choices fit on screen, with no sideways scroll', async ({ page }) => {
+    // A popup from v3 Block A; rows in Settings since v5 Block B. Same promise.
     await openApp(page);
-    await page.getByRole('button', { name: /^Theme:/ }).click();
+    await goTo(page, 'Settings');
 
     const menu = await box(page.getByRole('radiogroup', { name: 'Colour theme' }));
     expect(menu.x).toBeGreaterThanOrEqual(0);
@@ -50,26 +51,31 @@ test.describe('at the smallest supported phone width', () => {
     await openApp(page);
     await addHabit(page, 'Drink water');
 
-    const targets = [
+    const measure = async (targets: Locator[]) => {
+      for (const target of targets) {
+        const name = (await target.getAttribute('aria-label')) ?? (await target.textContent()) ?? '';
+        const b = await box(target);
+        expect.soft(b.width, name).toBeGreaterThanOrEqual(MIN_TAP);
+        expect.soft(b.height, name).toBeGreaterThanOrEqual(MIN_TAP);
+      }
+      return targets.length;
+    };
+
+    // Today, including the tab bar along the bottom (v5 Block B).
+    let counted = await measure([
       // Only in builds with accounts switched on, which the browser tests always are.
       ...(await page.getByRole('button', { name: /^Account:/ }).all()),
-      page.getByRole('button', { name: /^Theme:/ }),
       moreActions(page, 'Drink water'),
       page.getByRole('button', { name: 'Add habit' }),
       page.getByRole('button', { name: 'Add task' }),
       ...(await page.getByRole('button', { name: /^Drink water — / }).all()),
-    ];
+      ...(await page.getByRole('navigation', { name: 'Main' }).getByRole('link').all()),
+    ]);
 
-    // The theme choices only exist while their menu is open.
-    await page.getByRole('button', { name: /^Theme:/ }).click();
-    targets.push(...(await page.getByRole('radio').all()));
-    expect(targets.length).toBeGreaterThanOrEqual(14);
-
-    for (const target of targets) {
-      const b = await box(target);
-      expect.soft(b.width, await target.getAttribute('aria-label') ?? '').toBeGreaterThanOrEqual(MIN_TAP);
-      expect.soft(b.height, await target.getAttribute('aria-label') ?? '').toBeGreaterThanOrEqual(MIN_TAP);
-    }
+    // Settings: the theme rows (a popup's contents until v5) and the privacy link.
+    await goTo(page, 'Settings');
+    counted += await measure([...(await page.getByRole('radio').all()), page.getByRole('link', { name: 'Privacy' })]);
+    expect(counted).toBeGreaterThanOrEqual(18);
   });
 });
 
@@ -102,9 +108,14 @@ test('V2A-39 · the console stays clean through a normal session', async ({ page
   await addHabit(page, 'Drink water');
   await addTask(page, 'Call mum');
   await page.getByRole('checkbox', { name: 'Drink water', exact: true }).click();
-  await page.getByRole('button', { name: /^Theme:/ }).click();
+  // Through every tab (v5 Block B): Progress and Settings are drawn only in the
+  // browser, and a reload on one of them is a new way to get a hydration mismatch.
+  await goTo(page, 'Progress');
+  await goTo(page, 'Settings');
   await page.getByRole('radio', { name: 'Dark theme' }).click();
   await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+  await goTo(page, 'Today');
   await expect(page.getByRole('checkbox', { name: 'Drink water', exact: true })).toBeChecked();
 
   expect(problems).toEqual([]);

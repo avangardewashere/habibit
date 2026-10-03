@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openApp } from './helpers';
+import { goTo, openApp } from './helpers';
 
 /*
  * v3 Block G: the privacy page in a real browser, against a real build.
@@ -12,6 +12,8 @@ import { openApp } from './helpers';
 test('V3G-20 · ⭐ reachable from the app, signed out, and gets you back', async ({ page }) => {
   await openApp(page);
 
+  // In Settings → About since v5 Block B (it was a footer link before).
+  await goTo(page, 'Settings');
   await page.getByRole('link', { name: 'Privacy' }).click();
 
   await expect(page).toHaveURL(/\/privacy$/);
@@ -32,6 +34,7 @@ test('V3G-21 · ⭐ it opens on its own, without visiting the app first', async 
 
 test('V3G-22 · the link is comfortable to tap on a phone', async ({ page }) => {
   await openApp(page);
+  await goTo(page, 'Settings');
 
   const box = await page.getByRole('link', { name: 'Privacy' }).boundingBox();
 
