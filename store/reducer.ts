@@ -1,5 +1,6 @@
 import { completionKey } from '@/lib/keys';
 import { newId } from '@/lib/id';
+import { isStoredLook, type StoredLook } from '@/lib/look';
 import { evenKeys, keyBetween, LONGEST_KEY } from '@/lib/order';
 import { formatSchedule, type Schedule } from '@/lib/schedule';
 import { mergeStates } from '@/lib/sync/merge';
@@ -43,6 +44,13 @@ export type HabibitIntent =
    * before v4 and one set back to every day are the same row.
    */
   | { type: 'SET_SCHEDULE'; id: string; schedule: Schedule }
+  /**
+   * What the habit looks like (v5 Block A). Either field may be `null`, which
+   * means "nothing chosen" rather than "nothing shown": an un-chosen colour is
+   * derived from the habit's id and an un-chosen icon guessed from its title,
+   * at draw time. See `lib/look.ts`.
+   */
+  | { type: 'SET_LOOK'; id: string; icon: StoredLook; colour: StoredLook }
   /** Hides a habit from today's list. Its history and streak are kept. */
   | { type: 'ARCHIVE_HABIT'; id: string }
   | { type: 'UNARCHIVE_HABIT'; id: string }
@@ -219,6 +227,14 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
             position,
             // Every day until you say otherwise.
             schedule: null,
+            /*
+             * Nothing chosen, which is not the same as nothing shown: the habit
+             * is drawn in a colour derived from its id and an icon guessed from
+             * its title until somebody picks. Storing a look here instead would
+             * leave every habit made before v5 grey for ever (lib/look.ts).
+             */
+            icon: null,
+            colour: null,
           },
         ],
       };
@@ -243,6 +259,23 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
       return {
         ...state,
         habits: state.habits.map((h) => (h.id === action.id ? { ...h, schedule, updatedAt: action.at } : h)),
+      };
+    }
+
+    case 'SET_LOOK': {
+      const habit = state.habits.find((h) => h.id === action.id && h.deletedAt === null);
+      if (!habit) return state;
+      // Only values this build could have drawn are stored. A chooser can only
+      // offer what it can draw, so anything else is a bug or a tampered call —
+      // and letting it through would put nonsense past the database's own check.
+      const icon = isStoredLook(action.icon) ? action.icon : null;
+      const colour = isStoredLook(action.colour) ? action.colour : null;
+      // Choosing what it already is must not count as an edit: it would bump
+      // updatedAt, upload the row, and beat a real change made elsewhere.
+      if (habit.icon === icon && habit.colour === colour) return state;
+      return {
+        ...state,
+        habits: state.habits.map((h) => (h.id === action.id ? { ...h, icon, colour, updatedAt: action.at } : h)),
       };
     }
 

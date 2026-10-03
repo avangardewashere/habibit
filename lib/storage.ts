@@ -1,3 +1,4 @@
+import { isStoredLook } from './look';
 import { isOrderKey } from './order';
 import { isStoredSchedule } from './schedule';
 import type { Completion, CompletionKey, Habit, HabibitState, Task } from './types';
@@ -68,10 +69,13 @@ function isHabit(value: unknown): value is Habit {
     isNonEmptyString(value.updatedAt) &&
     isNullableString(value.archivedAt) &&
     isNullableString(value.deletedAt) &&
-    // Optional: data saved before v3 has no position at all, and data saved
-    // before v4 has no schedule (see withFieldsAddedLater).
+    // Optional: data saved before v3 has no position at all, data saved before
+    // v4 has no schedule, and data saved before v5 has no icon or colour (see
+    // withFieldsAddedLater).
     (value.position === undefined || isNullableString(value.position)) &&
-    (value.schedule === undefined || isNullableString(value.schedule))
+    (value.schedule === undefined || isNullableString(value.schedule)) &&
+    (value.icon === undefined || isNullableString(value.icon)) &&
+    (value.colour === undefined || isNullableString(value.colour))
   );
 }
 
@@ -163,6 +167,10 @@ export function migrateV1(state: StateV1): HabibitState {
       deletedAt: null,
       position: null,
       schedule: null,
+      // Nothing chosen. v5 draws a colour from the id and an icon from the
+      // title, so these habits arrive with a face anyway (lib/look.ts).
+      icon: null,
+      colour: null,
     })),
     tasks: state.tasks.map((t) => ({
       id: t.id,
@@ -179,18 +187,18 @@ export function migrateV1(state: StateV1): HabibitState {
 }
 
 /**
- * Fills in the fields added after version 2 — `position` (v3) and `schedule`
- * (v4) — where they are missing or unusable.
+ * Fills in the fields added after version 2 — `position` (v3), `schedule` (v4)
+ * and `icon`/`colour` (v5) — where they are missing or unusable.
  *
  * Both were added *without* a new schema version, on purpose. Version numbers
  * are refused when unknown, so bumping it would make a tab still running the
  * previous build treat this data as corrupt. An older build instead ignores the
  * extra field, and this build reads the older data as "not set".
  *
- * A schedule this build doesn't recognise is **kept, not cleared**: it may come
- * from a newer build, and clearing it here would upload the loss (see
- * `lib/schedule.ts`). Only a value that isn't a usable schedule at all is
- * dropped.
+ * A schedule, icon or colour this build doesn't recognise is **kept, not
+ * cleared**: it may come from a newer build, and clearing it here would upload
+ * the loss (see `lib/schedule.ts` and `lib/look.ts`). Only a value that isn't a
+ * usable one of its kind at all is dropped.
  */
 function withFieldsAddedLater(state: HabibitState): HabibitState {
   return {
@@ -199,6 +207,8 @@ function withFieldsAddedLater(state: HabibitState): HabibitState {
       ...h,
       position: isOrderKey(h.position) ? h.position : null,
       schedule: isStoredSchedule(h.schedule) ? h.schedule : null,
+      icon: isStoredLook(h.icon) ? h.icon : null,
+      colour: isStoredLook(h.colour) ? h.colour : null,
     })),
   };
 }

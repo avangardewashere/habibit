@@ -44,6 +44,8 @@ function preV3(...names: string[]): HabibitState {
       deletedAt: null,
       position: null,
       schedule: null,
+      icon: null,
+      colour: null,
     })),
   };
 }
@@ -152,6 +154,8 @@ describe('compareHabits', () => {
     deletedAt: null,
     position,
     schedule: null,
+    icon: null,
+    colour: null,
   });
 
   it('V3B-18 · keys first (by character code), then unpositioned oldest first, then by id', () => {

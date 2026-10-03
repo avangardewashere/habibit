@@ -27,6 +27,8 @@ function habit(schedule: string | null, createdAt = '2025-01-01T00:00:00.000Z'):
     archivedAt: null,
     position: null,
     schedule,
+    icon: null,
+    colour: null,
     deletedAt: null,
   };
 }

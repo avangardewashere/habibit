@@ -162,6 +162,46 @@ for (const [themeName, t] of [
   });
 }
 
+/*
+ * v5 Block A: the habit hues.
+ *
+ * Read from the CSS rather than listed here, so adding a seventh colour without
+ * measuring it is caught by the test rather than by a user. Each hue draws the
+ * ring and icon of an unchecked circle *and* the streak count beside the title,
+ * and a count is text — so these are held to 4.5:1 against the card, not the
+ * 3:1 an icon alone would need.
+ */
+const hueNames = Object.keys(themeVars)
+  .filter((name) => name.startsWith('--color-hue-'))
+  .map((name) => name.slice('--color-hue-'.length));
+
+describe('the habit hues', () => {
+  it('there are some, and dark has one of each', () => {
+    expect(hueNames.length).toBeGreaterThanOrEqual(4);
+    for (const name of hueNames) expect(darkLiterals[`--dark-hue-${name}`]).toBeDefined();
+  });
+
+  for (const [themeName, card, onHue] of [
+    ['light', light.card, hex(themeVars['--color-on-hue'])],
+    ['dark', dark.card, hex(darkLiterals['--dark-on-hue'])],
+  ] as const) {
+    describe(`${themeName} theme`, () => {
+      it.each(hueNames.map((name) => [name]))(
+        '%s reaches 4.5:1 against a card — it carries the streak count',
+        (name) => {
+          const value = themeName === 'light' ? themeVars[`--color-hue-${name}`] : darkLiterals[`--dark-hue-${name}`];
+          expect(contrast(hex(value), card)).toBeGreaterThanOrEqual(4.5);
+        },
+      );
+
+      it.each(hueNames.map((name) => [name]))('the tick on a chosen %s swatch reaches 3:1', (name) => {
+        const value = themeName === 'light' ? themeVars[`--color-hue-${name}`] : darkLiterals[`--dark-hue-${name}`];
+        expect(contrast(onHue, hex(value))).toBeGreaterThanOrEqual(3);
+      });
+    });
+  }
+});
+
 describe('the delete confirmation', () => {
   it('is legible in both themes, because it carries its own background', () => {
     expect(contrast(onDanger, danger)).toBeGreaterThanOrEqual(4.5);

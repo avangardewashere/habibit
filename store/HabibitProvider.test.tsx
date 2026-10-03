@@ -31,6 +31,8 @@ const stored: HabibitState = {
       archivedAt: null,
       position: null,
       schedule: null,
+      icon: null,
+      colour: null,
       deletedAt: null,
     },
   ],
