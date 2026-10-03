@@ -1,9 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openApp, THEME_KEY } from './helpers';
+import { goTo, openApp, THEME_KEY } from './helpers';
 
 /*
- * Ported from docs/qa/v0.5-b-theming.md. Since v3 Block A the three choices sit
- * in a menu behind one header button.
+ * Ported from docs/qa/v0.5-b-theming.md. From v3 Block A the three choices sat
+ * in a menu behind a header button; since v5 Block B they are three rows in
+ * Settings. Every check below is about what the theme *does*, so they carry
+ * over unchanged — only how you reach the choice is different.
  */
 
 const CREAM = 'rgb(255, 251, 247)'; // #FFFBF7
@@ -30,18 +32,15 @@ async function pageBackground(page: Page) {
   return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 }
 
-const SHORT = { 'Light theme': 'Light', 'Dark theme': 'Dark', 'Match device theme': 'Match device' } as const;
+type ThemeName = 'Light theme' | 'Dark theme' | 'Match device theme';
 
-function themeButton(page: Page) {
-  return page.getByRole('button', { name: /^Theme:/ });
-}
+const themeRow = (page: Page, label: ThemeName) => page.getByRole('radio', { name: label });
 
-async function choose(page: Page, label: keyof typeof SHORT) {
-  await themeButton(page).click();
-  await page.getByRole('radio', { name: label }).click();
-  // Picking closes the menu, and the button then names the new choice.
-  await expect(page.getByRole('radio')).toHaveCount(0);
-  await expect(themeButton(page)).toHaveAccessibleName(`Theme: ${SHORT[label]}`);
+/** Picks a theme in Settings, going there first if need be, and checks it took. */
+async function choose(page: Page, label: ThemeName) {
+  if ((await page.getByRole('radiogroup', { name: 'Colour theme' }).count()) === 0) await goTo(page, 'Settings');
+  await themeRow(page, label).click();
+  await expect(themeRow(page, label)).toBeChecked();
 }
 
 test('V2A-29 · ⭐ a stored dark theme is applied before any app markup exists (no white flash)', async ({ page }) => {
@@ -75,7 +74,8 @@ test('V2A-30 · light and dark apply, and the choice survives a reload', async (
   await choose(page, 'Dark theme');
   await expect.poll(() => pageBackground(page)).toBe(PLUM);
   await page.reload();
-  await expect(themeButton(page)).toHaveAccessibleName('Theme: Dark');
+  // Still on Settings after the reload: the tab is in the address.
+  await expect(themeRow(page, 'Dark theme')).toBeChecked();
   await expect.poll(() => pageBackground(page)).toBe(PLUM);
 
   await choose(page, 'Light theme');
@@ -118,18 +118,19 @@ test.describe('the status bar colour', () => {
     expect(await themeMetas(page)).toEqual(pinned('#241726'));
   });
 
-  test('V3A-10 · ⭐ a stored dark theme pins the status bar on load, with the menu never opened', async ({ page }) => {
+  test('V3A-10 · ⭐ a stored dark theme pins the status bar on load, with Settings never opened', async ({ page }) => {
     /*
      * The catch from docs/backlog.md. The load-time sync used to live inside the
-     * theme buttons; inside a menu that only exists while open it would never run,
-     * leaving a cream status bar above a plum app. The inline script can't catch
-     * this: it paints the colours but leaves the metas alone.
+     * theme buttons; inside something that only exists while open — a menu then,
+     * the Settings tab now — it would never run, leaving a cream status bar above
+     * a plum app. The inline script can't catch this: it paints the colours but
+     * leaves the metas alone.
      */
     await page.emulateMedia({ colorScheme: 'light' });
     await page.addInitScript((key) => localStorage.setItem(key, 'dark'), THEME_KEY);
     await openApp(page);
 
-    await expect(themeButton(page)).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('radiogroup', { name: 'Colour theme' })).toHaveCount(0);
     await expect.poll(() => themeMetas(page)).toEqual(pinned('#241726'));
   });
 

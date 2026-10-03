@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { envelope, habitRow, openApp, seed, streakBadge } from './helpers';
+import { envelope, goTo, habitRow, openApp, seed, streakBadge } from './helpers';
 
 /*
  * v4 Block C: what a schedule changes on today's list, in a real browser.
@@ -34,7 +34,11 @@ test('V4C-50 · ⭐ a habit that is not due today sits below the others, and say
   await expect(page.getByText('Not due today · Mondays')).toBeVisible();
 
   // Due first, resting after — whatever order they were added in.
-  const rows = page.getByRole('listitem');
+  // The habits' own list: since v5 Block B the tab bar is a list on the page too.
+  const rows = page
+    .getByRole('list')
+    .filter({ has: page.getByRole('checkbox', { name: 'Yoga', exact: true }) })
+    .getByRole('listitem');
   await expect(rows.first()).toContainText('Drink water');
   await expect(rows.last()).toContainText('Yoga');
 
@@ -145,8 +149,9 @@ test('V4C-55 · ⭐ the review marks days off apart from misses', async ({ page 
     }),
   );
 
-  await page.getByRole('button', { name: 'Review the last 4 weeks' }).click();
-  const dialog = page.getByRole('dialog');
+  // The review is the Progress tab since v5 Block B.
+  await goTo(page, 'Progress');
+  const dialog = page.getByRole('region', { name: 'Last 4 weeks' });
 
   await expect(dialog.locator('[data-day="2026-09-29"]')).toHaveAttribute('data-day-state', 'unscheduled');
   await expect(dialog.locator('[data-day="2026-09-28"]')).toHaveAttribute('data-day-state', 'done');

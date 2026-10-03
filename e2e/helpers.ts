@@ -116,3 +116,43 @@ export async function storedState(page: Page) {
 function escape(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+export type TabName = 'Today' | 'Progress' | 'Settings';
+
+/**
+ * Taps a tab in the bar along the bottom (v5 Block B) and waits for its screen,
+ * the way a person gets there — not by typing a `#hash` into the address.
+ */
+export async function goTo(page: Page, tab: TabName) {
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: tab, exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: tab === 'Today' ? 'Habibit' : tab })).toBeVisible();
+}
+
+/**
+ * Waits until the worker has kept everything this page would need to open again.
+ *
+ * Files fetched before the worker took over never passed through it, so the page
+ * hands it the list; until that has finished, going offline would be testing the
+ * wrong moment.
+ */
+export async function offlineReady(page: Page) {
+  await page.evaluate(async () => void (await navigator.serviceWorker.ready));
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const wanted = performance
+            .getEntriesByType('resource')
+            .map((entry) => entry.name)
+            .filter((name) => name.startsWith(`${location.origin}/_next/static/`));
+          const kept = new Set<string>();
+          for (const name of await caches.keys()) {
+            const cache = await caches.open(name);
+            for (const request of await cache.keys()) kept.add(request.url);
+          }
+          return wanted.length > 0 && wanted.every((url) => kept.has(url)) && kept.has(`${location.origin}/`);
+        }),
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+}

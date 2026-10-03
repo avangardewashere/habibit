@@ -398,3 +398,87 @@ export function sinceYouStarted(state: HabibitState, habit: Habit, today: DateKe
 
   return { times, days, from };
 }
+
+// ---------------------------------------------------------------------------
+// Progress (v5 Block B): the week so far, and the headline numbers. Nothing
+// here is a new rule — every count goes through `reviewDay`, `habitStreak` or
+// `bestEver`, so the Progress tab can never disagree with a badge on Today.
+// ---------------------------------------------------------------------------
+
+/** One day of the week chart. `future` days have nothing to say yet. */
+export type DaySummary = { day: DateKey; due: number; done: number; future: boolean };
+export type WeekSummary = { days: DaySummary[]; due: number; done: number };
+
+/**
+ * Monday to Sunday of this week: for each day so far, how many habits were
+ * kept out of how many could have been.
+ *
+ * Today counts **so far** — it is the bar people watch fill up. A day with
+ * nothing due has `due: 0`, which the chart draws as a rest day, not as a zero.
+ * A habit kept on a day it wasn't due still counts, the same rule as
+ * everywhere else: a day you kept is a day you kept.
+ */
+export function weekSummary(state: HabibitState, today: DateKey): WeekSummary {
+  const habits = activeHabits(state);
+  const days = weekOf(today).map((day): DaySummary => {
+    if (day > today) return { day, due: 0, done: 0, future: true };
+    let due = 0;
+    let done = 0;
+    for (const habit of habits) {
+      const kind = reviewDay(state, habit, day, today);
+      if (kind === 'done') {
+        done += 1;
+        due += 1;
+      } else if (kind === 'missed') {
+        due += 1;
+      }
+    }
+    return { day, due, done, future: false };
+  });
+  return {
+    days,
+    due: days.reduce((sum, d) => sum + d.due, 0),
+    done: days.reduce((sum, d) => sum + d.done, 0),
+  };
+}
+
+/** A streak, and whose it is. */
+export type Standout = { habit: Habit; streak: Streak };
+
+/** Weeks are compared as seven days each, so a 3-week run outranks a 10-day one. */
+const inDays = (streak: Streak) => (streak.unit === 'week' ? streak.count * 7 : streak.count);
+
+function standout(state: HabibitState, measure: (habit: Habit) => Streak): Standout | null {
+  let best: Standout | null = null;
+  for (const habit of activeHabits(state)) {
+    const streak = measure(habit);
+    if (streak.count > 0 && (best === null || inDays(streak) > inDays(best.streak))) best = { habit, streak };
+  }
+  return best;
+}
+
+/** The longest streak running today, or `null` when nothing has one yet. */
+export function longestGoing(state: HabibitState, today: DateKey): Standout | null {
+  return standout(state, (habit) => habitStreak(state, habit, today));
+}
+
+/** The best run any habit has ever had. */
+export function bestRunEver(state: HabibitState, today: DateKey): Standout | null {
+  return standout(state, (habit) => bestEver(state, habit, today));
+}
+
+/**
+ * Every tick, all time, across every habit you still have — archived ones
+ * included, since archiving keeps history. Deleted habits are gone, and so are
+ * ticks dated after today.
+ */
+export function checkIns(state: HabibitState, today: DateKey): number {
+  const live = new Set(liveHabits(state).map((h) => `${h.id}::`));
+  let count = 0;
+  for (const [key, completion] of Object.entries(state.completions)) {
+    if (!completion.done) continue;
+    const split = key.lastIndexOf('::') + 2;
+    if (live.has(key.slice(0, split)) && key.slice(split) <= today) count += 1;
+  }
+  return count;
+}

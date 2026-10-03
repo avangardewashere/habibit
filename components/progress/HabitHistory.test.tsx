@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { STORAGE_KEY } from '@/lib/storage';
 import type { DateKey, HabibitState } from '@/lib/types';
 import { HabibitProvider } from '@/store/HabibitProvider';
-import { ReviewButton } from './ReviewButton';
+import { ProgressScreen } from './ProgressScreen';
 
 /*
  * Today is pinned, because a review of "the last four weeks" is meaningless
@@ -32,14 +32,14 @@ function stored(): HabibitState {
   };
 }
 
+/** Progress, as the tab shows it. The history is the region named for its range. */
 function open() {
   render(
     <HabibitProvider>
-      <ReviewButton />
+      <ProgressScreen />
     </HabibitProvider>,
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Review the last 4 weeks' }));
-  return screen.getByRole('dialog', { name: 'Last 4 weeks' });
+  return screen.getByRole('region', { name: 'Last 4 weeks' });
 }
 
 const squares = (dialog: HTMLElement, title: string) => {
@@ -54,22 +54,17 @@ beforeEach(() => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, state: stored() }));
 });
 
-describe('the review', () => {
-  it('V3C-20 · opens from the header button, with focus on Close', () => {
-    const dialog = open();
-    expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Close review' })).toHaveFocus();
-    expect(within(dialog).getByText('24 Aug – 20 Sept')).toBeInTheDocument();
-  });
-
-  it('V3C-21 · Escape closes it and puts focus back on the button', () => {
-    open();
-    fireEvent.keyDown(document, { key: 'Escape' });
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Review the last 4 weeks' })).toHaveFocus();
-    // The page behind can scroll again.
-    expect(document.body.style.overflow).toBe('');
+/*
+ * The review's calendars, now the bottom of the Progress tab (v5 Block B).
+ *
+ * V3C-20 (opens from the header button, focus on Close) and V3C-21 (Escape
+ * closes it) were about the sheet the review used to be. There is no sheet any
+ * more, so they are retired; V5B-40 replaces the first.
+ */
+describe('history on the Progress tab', () => {
+  it('V5B-40 · ⭐ the last four weeks are on the Progress tab, with their dates', () => {
+    const region = open();
+    expect(within(region).getByText('24 Aug – 20 Sept')).toBeInTheDocument();
   });
 
   it('V3C-22 · ⭐ says how many days were kept out of the days that counted, and the best run', () => {
@@ -101,11 +96,11 @@ describe('the review', () => {
     const dialog = open();
     /*
      * Every button here changes what you are *looking at*, never what you did:
-     * close, and the two ranges added in v4 Block D. No day is tappable — the
+     * the two ranges added in v4 Block D (Close left with the sheet, in v5). No day is tappable — the
      * seven-day strip on the main list is the only place a day can be changed.
      */
     expect(within(dialog).getAllByRole('button').map((b) => b.textContent?.trim() || b.getAttribute('aria-label')))
-      .toEqual(['Close review', '4 weeks', 'Year']);
+      .toEqual(['4 weeks', 'Year']);
     expect(dialog.querySelectorAll('button[data-day], [data-day] button')).toHaveLength(0);
   });
 

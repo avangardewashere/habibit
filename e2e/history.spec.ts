@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { envelope, openApp, seed } from './helpers';
+import { envelope, goTo, openApp, seed } from './helpers';
 
 /*
  * v4 Block D: a year of one habit, in a real browser.
@@ -26,8 +26,10 @@ async function openReview(page: Page, data: object) {
   await page.clock.install({ time: WEDNESDAY });
   await seed(page, data);
   await openApp(page);
-  await page.getByRole('button', { name: 'Review the last 4 weeks' }).click();
-  return page.getByRole('dialog');
+  // The review became the bottom of the Progress tab in v5 Block B.
+  await goTo(page, 'Progress');
+  // Named by its heading, which follows the range: "Last 4 weeks" or "Last year".
+  return page.getByRole('region', { name: /^Last (4 weeks|year)$/ });
 }
 
 const yearView = (page: Page) => page.getByRole('button', { name: 'Year', exact: true });

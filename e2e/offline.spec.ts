@@ -1,7 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { testEmail } from '../test-support/local-supabase';
 import { accountHabitTitles, expectSynced, openAccount, signIn, supabase } from './account-helpers';
-import { addHabit, envelope, habitRow, openApp, seed, THEME_KEY } from './helpers';
+import { addHabit, envelope, habitRow, offlineReady, openApp, seed, THEME_KEY } from './helpers';
 
 /*
  * v2 Block F: the app opens with no connection, and edits made there are not lost.
@@ -11,35 +11,6 @@ import { addHabit, envelope, habitRow, openApp, seed, THEME_KEY } from './helper
  */
 
 const PLUM = 'rgb(36, 23, 38)'; // the dark theme's page colour
-
-/**
- * Waits until the worker has kept everything this page would need to open again.
- *
- * Files fetched before the worker took over never passed through it, so the page
- * hands it the list; until that has finished, going offline would be testing the
- * wrong moment.
- */
-async function offlineReady(page: Page) {
-  await page.evaluate(async () => void (await navigator.serviceWorker.ready));
-  await expect
-    .poll(
-      () =>
-        page.evaluate(async () => {
-          const wanted = performance
-            .getEntriesByType('resource')
-            .map((entry) => entry.name)
-            .filter((name) => name.startsWith(`${location.origin}/_next/static/`));
-          const kept = new Set<string>();
-          for (const name of await caches.keys()) {
-            const cache = await caches.open(name);
-            for (const request of await cache.keys()) kept.add(request.url);
-          }
-          return wanted.length > 0 && wanted.every((url) => kept.has(url)) && kept.has(`${location.origin}/`);
-        }),
-      { timeout: 20_000 },
-    )
-    .toBe(true);
-}
 
 test('V2F-50 · ⭐ the app opens with no connection at all, with your habits', async ({ page, context }) => {
   await seed(page, envelope({ habits: [{ id: 'h1', title: 'Drink water' }] }));

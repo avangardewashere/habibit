@@ -1,66 +1,55 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addHabit, openApp, seed, todayDot } from './helpers';
+import { addHabit, goTo, openApp, seed, todayDot } from './helpers';
 
 /*
- * v3 Block C: the last four weeks, as a sheet over the app.
+ * v3 Block C's review: the last four weeks, habit by habit.
+ *
+ * It was a sheet over the app, opened from a calendar button in the header.
+ * Since v5 Block B it is the bottom of the Progress tab. What it shows is
+ * unchanged and keeps its tests; the two tests about the sheet itself are
+ * retired — V3C-51 (Escape closes it, focus returns to the button) has no
+ * sheet to close, and its accessibility promise now belongs to V5B-63 (focus
+ * moves to each screen's heading). V3C-54 now measures the range buttons,
+ * since the Close button it measured went with the sheet.
  */
 
-const openReview = (page: Page) => page.getByRole('button', { name: 'Review the last 4 weeks' }).click();
-const sheet = (page: Page) => page.getByRole('dialog', { name: 'Last 4 weeks' });
+const history = (page: Page) => page.getByRole('region', { name: 'Last 4 weeks' });
 
-test('V3C-50 · ⭐ the review opens over the app, shows four weeks, and closes again', async ({ page }) => {
+test('V3C-50 · ⭐ Progress shows four weeks of each habit, and Today is untouched', async ({ page }) => {
   await openApp(page);
   await addHabit(page, 'Drink water');
   await todayDot(page, 'Drink water').click();
 
-  await openReview(page);
-  const review = sheet(page);
-  await expect(review).toBeVisible();
+  await goTo(page, 'Progress');
+  const review = history(page);
   await expect(review.getByRole('heading', { name: 'Drink water' })).toBeVisible();
   // Four weeks of seven days, for the one habit.
   await expect(review.locator('[data-day-state]')).toHaveCount(28);
   await expect(review.locator('[data-day-state="done"]')).toHaveCount(1);
 
-  await page.getByRole('button', { name: 'Close review' }).click();
-  await expect(sheet(page)).toHaveCount(0);
-  // Back to the app, with the habit still there.
+  await goTo(page, 'Today');
   await expect(page.getByRole('checkbox', { name: 'Drink water', exact: true })).toBeChecked();
 });
 
-test('V3C-51 · Escape closes it and focus goes back to the button', async ({ page }) => {
+test('V3C-52 · ⭐ nothing in the history can change your history', async ({ page }) => {
   await openApp(page);
   await addHabit(page, 'Drink water');
-
-  await openReview(page);
-  await expect(page.getByRole('button', { name: 'Close review' })).toBeFocused();
-  await page.keyboard.press('Escape');
-
-  await expect(sheet(page)).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Review the last 4 weeks' })).toBeFocused();
-});
-
-test('V3C-52 · ⭐ nothing in the review can change your history', async ({ page }) => {
-  await openApp(page);
-  await addHabit(page, 'Drink water');
-  await openReview(page);
+  await goTo(page, 'Progress');
 
   /*
-   * Every button changes what you are looking at, never what you did: close,
-   * and the two ranges added in v4 Block D. No day is tappable here — the
-   * seven-day strip on the main list is the only place a day can be changed.
+   * Every button changes what you are looking at, never what you did: the two
+   * ranges from v4 Block D. No day is tappable here — the seven-day strip on
+   * Today is the only place a day can be changed.
    */
-  const buttons = sheet(page).getByRole('button');
-  await expect(buttons).toHaveCount(3);
-  await expect(buttons.first()).toHaveAccessibleName('Close review');
-  await expect(sheet(page).locator('button[data-day], [data-day] button')).toHaveCount(0);
+  const buttons = history(page).getByRole('button');
+  await expect(buttons).toHaveCount(2);
+  await expect(buttons.first()).toHaveText('4 weeks');
+  await expect(page.locator('button[data-day], [data-day] button')).toHaveCount(0);
 });
 
 test('V3C-53 · ⭐ a habit made mid-window shows blank days before it, not misses', async ({ page }) => {
   // Seeded rather than clicked: "made three days ago" can't be typed into the app.
-  // The shared envelope() helper dates every habit the same, so this one is written out.
   const madeAt = new Date(Date.now() - 3 * 86_400_000).toISOString();
-  // seed() takes the whole stored envelope, version and all: anything else is
-  // treated as corrupt data and quarantined, leaving the app empty.
   await seed(page, {
     version: 2,
     state: {
@@ -80,9 +69,9 @@ test('V3C-53 · ⭐ a habit made mid-window shows blank days before it, not miss
     },
   });
   await openApp(page);
-  await openReview(page);
+  await goTo(page, 'Progress');
 
-  const review = sheet(page);
+  const review = history(page);
   await expect(review.locator('[data-day-state]')).toHaveCount(28);
   // Four days it could have been kept: three days ago through today.
   await expect(review.locator('[data-day-state="missed"]')).toHaveCount(4);
@@ -96,32 +85,32 @@ test('V3C-53 · ⭐ a habit made mid-window shows blank days before it, not miss
 test.describe('at the smallest supported phone width', () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test('V3C-54 · the sheet fits the screen, with no sideways scroll', async ({ page }) => {
+  test('V3C-54 · Progress fits the screen, with no sideways scroll', async ({ page }) => {
     await openApp(page);
     for (const title of ['Drink water', 'Stretch', 'A really quite long habit title that wraps']) {
       await addHabit(page, title);
     }
-    await openReview(page);
+    await goTo(page, 'Progress');
 
-    await expect(sheet(page)).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
     ).toBe(false);
 
-    const close = await page.getByRole('button', { name: 'Close review' }).boundingBox();
-    expect(close!.width).toBeGreaterThanOrEqual(44);
-    expect(close!.height).toBeGreaterThanOrEqual(44);
+    for (const name of ['4 weeks', 'Year']) {
+      const box = await page.getByRole('button', { name, exact: true }).boundingBox();
+      expect(box!.height, name).toBeGreaterThanOrEqual(44);
+    }
   });
 });
 
-test('V3C-55 · ⭐ the review opens with no connection', async ({ page, context }) => {
+test('V3C-55 · ⭐ Progress opens with no connection', async ({ page, context }) => {
   await openApp(page);
   await addHabit(page, 'Drink water');
 
   await context.setOffline(true);
-  await openReview(page);
+  await goTo(page, 'Progress');
 
-  await expect(sheet(page).getByRole('heading', { name: 'Drink water' })).toBeVisible();
-  await expect(sheet(page).locator('[data-day-state]')).toHaveCount(28);
+  await expect(history(page).getByRole('heading', { name: 'Drink water' })).toBeVisible();
+  await expect(history(page).locator('[data-day-state]')).toHaveCount(28);
   await context.setOffline(false);
 });
