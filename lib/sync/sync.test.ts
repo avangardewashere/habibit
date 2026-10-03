@@ -14,6 +14,8 @@ const habit = (id: string, title: string, updated = 0): Habit => ({
   archivedAt: null,
   position: null,
   schedule: null,
+  icon: null,
+  colour: null,
   deletedAt: null,
 });
 const empty = (): HabibitState => ({ habits: [], tasks: [], completions: {} });

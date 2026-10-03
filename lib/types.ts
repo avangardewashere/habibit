@@ -46,6 +46,20 @@ export type Habit = {
    * Added without a new storage version, exactly as `position` was in v3.
    */
   schedule: string | null;
+  /**
+   * What the habit looks like: one of the icon names in `lib/look.ts`, or
+   * `null` for no icon. Given automatically from the title when the habit is
+   * added, and changeable afterwards.
+   *
+   * Kept as the stored text for the same reason as `schedule`: an icon added by
+   * a **newer** build passes through this one untouched instead of being erased
+   * the next time anything about the habit is edited. Read it with `parseIcon`.
+   *
+   * Added without a new storage version, exactly as `schedule` was in v4.
+   */
+  icon: string | null;
+  /** One of the colour names in `lib/look.ts`, or `null` for the app's accent. Same rules as `icon`. */
+  colour: string | null;
   /** Tombstone. Set by deleting; the row is kept so the delete can sync. */
   deletedAt: string | null;
 };

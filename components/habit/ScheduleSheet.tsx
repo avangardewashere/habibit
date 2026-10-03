@@ -15,7 +15,9 @@ import {
   type Schedule,
   type Weekday,
 } from '@/lib/schedule';
+import type { StoredLook } from '@/lib/look';
 import type { DateKey, Habit } from '@/lib/types';
+import { HabitLook } from './HabitLook';
 import { HabitReminder } from './HabitReminder';
 
 /**
@@ -34,12 +36,15 @@ export function ScheduleSheet({
   habit,
   today,
   onChoose,
+  onChooseLook,
   onClose,
 }: {
   habit: Habit;
   /** Used to pick a sensible first day when switching to "certain days". */
   today: DateKey | null;
   onChoose: (schedule: Schedule) => void;
+  /** The habit's colour and icon (v5 Block A). Either may be null — see lib/look.ts. */
+  onChooseLook: (icon: StoredLook, colour: StoredLook) => void;
   onClose: () => void;
 }) {
   const schedule = parseSchedule(habit.schedule);
@@ -81,13 +86,15 @@ export function ScheduleSheet({
       <div className="mx-auto w-full max-w-md">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div className="min-w-0">
+            {/*
+              * The habit's own name since v5 Block A. The sheet was titled
+              * "When?" while it only held timing; it now opens with Look, so a
+              * title about *when* would describe a third of it.
+              */}
             <h2 id={titleId} className="break-words text-2xl font-extrabold tracking-tight text-ink">
-              When?
+              {habit.title}
             </h2>
-            <p className="mt-0.5 break-words text-sm text-ink-soft">
-              {habit.title} — {describeSchedule(schedule)}
-            </p>
-            <p className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-soft">How often</p>
+            <p className="mt-0.5 break-words text-sm text-ink-soft">{describeSchedule(schedule)}</p>
           </div>
           <button
             ref={closeRef}
@@ -99,6 +106,10 @@ export function ScheduleSheet({
             <X className="h-5 w-5" strokeWidth={2.5} />
           </button>
         </div>
+
+        <HabitLook habit={habit} onChoose={onChooseLook} />
+
+        <h3 className="mb-2 mt-6 text-xs font-bold uppercase tracking-wide text-ink-soft">How often</h3>
 
         <div className="space-y-2">
           <Choice

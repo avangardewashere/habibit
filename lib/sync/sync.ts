@@ -72,6 +72,7 @@ export function touchedBy(action: HabibitAction): OutboxKey | null {
     case 'RENAME_HABIT':
     case 'MOVE_HABIT':
     case 'SET_SCHEDULE':
+    case 'SET_LOOK':
     case 'ARCHIVE_HABIT':
     case 'UNARCHIVE_HABIT':
       return `habit:${action.id}`;

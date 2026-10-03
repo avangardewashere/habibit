@@ -32,6 +32,8 @@ function state(schedule: string | null, kept: DateKey[], createdAt = '2026-01-01
         archivedAt: null,
         position: null,
         schedule,
+        icon: null,
+        colour: null,
         deletedAt: null,
       },
     ],

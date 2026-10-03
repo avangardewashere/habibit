@@ -3,6 +3,7 @@
 import { Check, MoreHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
+import type { HabitColour } from '@/lib/look';
 import { CheckCircle } from './CheckCircle';
 
 /** How long the Rename / Delete menu stays open before quietly closing. */
@@ -25,6 +26,8 @@ type Mode = 'idle' | 'menu' | 'editing';
 export function ItemRow({
   title,
   checked,
+  colour = null,
+  glyph,
   muted = false,
   onToggle,
   onRemove,
@@ -41,6 +44,10 @@ export function ItemRow({
 }: {
   title: string;
   checked: boolean;
+  /** The habit's colour (v5 Block A). Tasks have none and look unchanged. */
+  colour?: HabitColour | null;
+  /** The habit's icon, shown inside the circle while it is not done. */
+  glyph?: ReactNode;
   /**
    * Quieter, for a habit that isn't due today (v4 Block C). The title takes the
    * secondary ink colour rather than an opacity: 60% of the ink colour over a
@@ -132,7 +139,7 @@ export function ItemRow({
       <li>
         <div className="flex min-h-14 items-center gap-1 pr-2">
           <div className="flex flex-1 items-center gap-3 pl-4">
-            <CheckCircle checked={checked} />
+            <CheckCircle checked={checked} colour={colour} glyph={glyph} />
             <input
               ref={inputRef}
               value={draft}
@@ -196,7 +203,7 @@ export function ItemRow({
              title pushed the menu pills out past the card (found by CI in v3 Block B). */
           className="flex min-h-14 min-w-0 flex-1 touch-manipulation items-center gap-3 rounded-card px-4 py-2 text-left transition-transform duration-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
         >
-          <CheckCircle checked={checked} />
+          <CheckCircle checked={checked} colour={colour} glyph={glyph} />
           <span
             className={[
               'min-w-0 text-[15px] leading-snug transition-colors',
@@ -237,12 +244,21 @@ export function ItemRow({
                   onSchedule();
                 }}
                 aria-label={scheduleLabel}
-                /* "When" rather than "Schedule": four pills have to fit beside a
-                   title on a 375px phone, and since v4 Block E this one holds
-                   both which days a habit is due and when to be reminded. */
+                /*
+                 * "Edit", not "When", since v5 Block A: the sheet behind it now
+                 * also holds the habit's colour and icon, so a word about
+                 * timing would be a lie. Still one pill — four only just fit
+                 * beside a title on a 375px phone, so a fifth for the look was
+                 * never an option, and the sheet was already the habit's
+                 * settings in all but name.
+                 *
+                 * Rename stays separate on purpose. It is the common edit and
+                 * it happens in place, without covering the list; `aria-label`
+                 * spells out which is which.
+                 */
                 className="min-h-11 touch-manipulation rounded-full border border-ink-soft bg-card px-3 text-xs font-extrabold text-ink transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                When
+                Edit
               </button>
             )}
             {onArchive && (

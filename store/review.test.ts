@@ -17,6 +17,8 @@ function habit(createdAt: string, id = 'h1'): Habit {
     deletedAt: null,
     position: 'V',
     schedule: null,
+    icon: null,
+    colour: null,
   };
 }
 

@@ -24,6 +24,8 @@ function habit(id: string, title: string, schedule: string | null, position: str
     deletedAt: null,
     position,
     schedule,
+    icon: null,
+    colour: null,
   };
 }
 

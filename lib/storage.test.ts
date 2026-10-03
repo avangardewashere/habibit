@@ -56,6 +56,8 @@ const sample: HabibitState = {
       archivedAt: null,
       position: null,
       schedule: null,
+      icon: null,
+      colour: null,
       deletedAt: null,
     },
     {
@@ -66,6 +68,8 @@ const sample: HabibitState = {
       archivedAt: null,
       position: null,
       schedule: null,
+      icon: null,
+      colour: null,
       deletedAt: '2026-09-09T00:00:00.000Z',
     },
   ],
@@ -349,6 +353,43 @@ describe('habit positions (v3)', () => {
 
   it('still refuses a position of the wrong type', () => {
     const saved = { ...sample, habits: [{ ...sample.habits[0], position: 42 }] };
+    expect(loadRaw(JSON.stringify({ version: 2, state: saved })).state).toBeNull();
+  });
+});
+
+describe('habit look (v5 Block A)', () => {
+  const withoutLook = (h: (typeof sample.habits)[number]) => {
+    const saved: Partial<typeof h> = { ...h };
+    delete saved.icon;
+    delete saved.colour;
+    return saved;
+  };
+
+  it('V5A-40 · ⭐ data saved before v5 loads with nothing chosen, and no new storage version', () => {
+    expect(SCHEMA_VERSION).toBe(2);
+    const saved = { ...sample, habits: sample.habits.map(withoutLook) };
+    const { state, store } = loadRaw(JSON.stringify({ version: 2, state: saved }));
+
+    expect(state).not.toBeNull();
+    expect(state!.habits.every((h) => h.icon === null && h.colour === null)).toBe(true);
+    expect(store.getItem(CORRUPT_KEY)).toBeNull();
+  });
+
+  it('V5A-41 · ⭐ a look this build cannot draw is kept, not cleared', () => {
+    // From a newer build. Clearing it here would upload the loss on the next edit.
+    const saved = { ...sample, habits: [{ ...sample.habits[0], icon: 'saxophone', colour: 'ultramarine' }] };
+    const { state } = loadRaw(JSON.stringify({ version: 2, state: saved }));
+    expect(state!.habits[0]).toMatchObject({ icon: 'saxophone', colour: 'ultramarine' });
+  });
+
+  it('V5A-42 · something that could never be a look is read as nothing chosen', () => {
+    const saved = { ...sample, habits: [{ ...sample.habits[0], icon: 'Not An Icon!', colour: '' }] };
+    const { state } = loadRaw(JSON.stringify({ version: 2, state: saved }));
+    expect(state!.habits[0]).toMatchObject({ icon: null, colour: null });
+  });
+
+  it('V5A-43 · a look of the wrong type is refused, like any other malformed field', () => {
+    const saved = { ...sample, habits: [{ ...sample.habits[0], colour: 7 }] };
     expect(loadRaw(JSON.stringify({ version: 2, state: saved })).state).toBeNull();
   });
 });

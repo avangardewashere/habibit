@@ -14,7 +14,7 @@ const sheet = (page: Page) => page.getByRole('dialog');
 
 async function openSchedule(page: Page, title: string) {
   await moreActions(page, title).click();
-  await page.getByRole('button', { name: new RegExp(`^When ${title} is due`) }).click();
+  await page.getByRole('button', { name: new RegExp(`^Edit ${title}:`) }).click();
   await expect(sheet(page)).toBeVisible();
 }
 
@@ -47,7 +47,8 @@ test('V4B-50 · ⭐ choosing certain days sticks, and survives a reload', async 
 
   await page.reload();
   await openSchedule(page, 'Run');
-  await expect(sheet(page)).toContainText('Run — Mon, Wed and Fri');
+  await expect(sheet(page).getByRole('heading', { name: 'Run', exact: true })).toBeVisible();
+  await expect(sheet(page)).toContainText('Mon, Wed and Fri');
   await expect(page.getByRole('radio', { name: /Certain days/ })).toBeChecked();
 });
 
@@ -63,7 +64,8 @@ test('V4B-51 · ⭐ a few times a week sticks too', async ({ page }) => {
 
   await page.reload();
   await openSchedule(page, 'Gym');
-  await expect(sheet(page)).toContainText('Gym — 4 times a week');
+  await expect(sheet(page).getByRole('heading', { name: 'Gym', exact: true })).toBeVisible();
+  await expect(sheet(page)).toContainText('4 times a week');
 });
 
 test('V4B-52 · ⭐ a habit can never end up due on no days at all', async ({ page }) => {
