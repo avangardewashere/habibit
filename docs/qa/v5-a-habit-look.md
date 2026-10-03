@@ -1,6 +1,6 @@
 # Habibit: v5 Block A, habits get a face
 
-**Block:** A of 3 (v5) · **Date:** 2026-10-04 · **Status:** ✅ all four suites green locally (622 unit / 9 DST / 107 database / 262 browser). Waiting for your sign-off. Not merged, and nothing is deployed
+**Block:** A of 3 (v5) · **Date:** 2026-10-04 · **Status:** ✅ all four suites green on CI (run 37144080754), first try: 622 unit / 9 DST / 107 database / 262 browser, matching the local run exactly. Signed off and merged on 2026-10-04
 
 > **Every habit now has a colour and an icon, and nobody had to choose either.** "Drink water"
 > arrives as a droplet, "Run 5k" as footprints, "Read before bed" as a book, each in its own
