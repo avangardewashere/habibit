@@ -4,6 +4,8 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { looksLikeEmail, requestSignIn, verifyCode } from '@/lib/auth/actions';
 import type { AccountState } from '@/lib/auth/session';
+import { hasSample } from '@/lib/sample';
+import { useHabibit } from '@/store/HabibitProvider';
 import { useSync, type SyncStatus } from '@/store/SyncProvider';
 import { ReminderSettings } from './ReminderSettings';
 
@@ -181,6 +183,7 @@ function SyncLine({ status, pending, onRetry }: { status: SyncStatus; pending: n
 }
 
 function SignIn() {
+  const sample = hasSample(useHabibit().state);
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -281,6 +284,15 @@ function SignIn() {
           </a>
           .
         </p>
+        {/*
+          * v5 Block C, your choice: an account only ever holds habits someone
+          * keeps, so signing in clears the samples. Said before it happens.
+          */}
+        {sample && (
+          <p className="mt-2 text-sm font-bold text-ink">
+            Signing in clears the sample habits. Anything you added yourself stays.
+          </p>
+        )}
       </div>
       <input
         type="email"

@@ -37,6 +37,7 @@ vi.mock('@/store/SyncProvider', () => ({
 // Reminders are a section of the same popup; not what these tests are about.
 vi.mock('./ReminderSettings', () => ({ ReminderSettings: () => null }));
 
+import { HabibitProvider } from '@/store/HabibitProvider';
 import { AccountPanel } from './AccountPanel';
 
 const signedIn = { status: 'signed-in', email: 'me@example.com' } as const;
@@ -126,7 +127,12 @@ describe('V3F: leaving', () => {
   });
 
   it('V3F-17 · ⭐ signed out, there is nothing to delete', () => {
-    render(<AccountPanel account={{ status: 'signed-out' }} />);
+    // In a HabibitProvider, as in the app: since v5 Block C the sign-in panel reads the habits, to warn that signing in clears the sample.
+    render(
+      <HabibitProvider>
+        <AccountPanel account={{ status: 'signed-out' }} />
+      </HabibitProvider>,
+    );
 
     expect(screen.queryByRole('button', { name: 'Delete account' })).not.toBeInTheDocument();
   });

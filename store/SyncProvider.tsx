@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import { deleteAccount as deleteTheAccount, signOut as signOutOfAccount } from '@/lib/auth/actions';
 import { useAccount } from '@/lib/auth/session';
+import { isSampleOutboxKey, withoutSample } from '@/lib/sample';
 import { isOnline } from '@/lib/offline/connection';
 import { getSupabase } from '@/lib/supabase/client';
 import { supabaseRemote, type RemoteStore } from '@/lib/sync/remote';
@@ -98,7 +99,7 @@ export function SyncProvider({
   createRemote?: () => RemoteStore | null;
 }) {
   const account = useAccount();
-  const { state, mergeRemote, clearDevice, subscribeToEdits } = useHabibit();
+  const { state, dispatch, mergeRemote, clearDevice, subscribeToEdits } = useHabibit();
   const [status, setStatus] = useState<SyncStatus>({ state: 'off' });
   const [pending, setPending] = useState(0);
 
@@ -132,10 +133,17 @@ export function SyncProvider({
       const startedIn = generation.current;
       setStatus({ state: 'syncing' });
 
+      /*
+       * The sample (v5 Block C) never goes up. Signing in clears it, below;
+       * this is the second line of defence, for the moment between the two or
+       * a tab that still had it. A made-up habit in an account is the one
+       * outcome that can't be quietly undone.
+       */
+      const mine = withoutSample(latest.current);
       const work: Promise<SyncResult> =
         kind === 'full'
-          ? syncOnce(latest.current, remote)
-          : syncChanges(latest.current, outbox.current.keys(), cursor.current, remote);
+          ? syncOnce(mine, remote)
+          : syncChanges(mine, outbox.current.keys(), cursor.current, remote);
 
       const attempt = work
         .then((result) => {
@@ -183,8 +191,11 @@ export function SyncProvider({
   // Sign-in, or opening the app already signed in: the full combine.
   useEffect(() => {
     if (!signedIn) return;
+    // The sample is cleared first (your choice in v5 Block C): an account only
+    // ever holds habits someone actually keeps. A no-op when there is none.
+    dispatch({ type: 'CLEAR_SAMPLE' });
     void run('full');
-  }, [signedIn, run]);
+  }, [signedIn, run, dispatch]);
 
   // Every edit on this device goes in the outbox, and up shortly after.
   useEffect(() => {
@@ -192,7 +203,9 @@ export function SyncProvider({
     let timer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribe = subscribeToEdits((action) => {
       const key = touchedBy(action);
-      if (!key) return;
+      // A sample record never uploads, so it must never wait to either — the
+      // pending count would sit at one for ever.
+      if (!key || isSampleOutboxKey(key)) return;
       outbox.current.set(key, true);
       setPending(outbox.current.size);
       clearTimeout(timer);

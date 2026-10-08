@@ -1,6 +1,7 @@
 import { completionKey } from '@/lib/keys';
 import { newId } from '@/lib/id';
 import { isStoredLook, type StoredLook } from '@/lib/look';
+import { sampleState, withoutSample } from '@/lib/sample';
 import { evenKeys, keyBetween, LONGEST_KEY } from '@/lib/order';
 import { formatSchedule, type Schedule } from '@/lib/schedule';
 import { mergeStates } from '@/lib/sync/merge';
@@ -60,7 +61,16 @@ export type HabibitIntent =
   | { type: 'REMOVE_TASK'; id: string }
   /** Undoes REMOVE_TASK. */
   | { type: 'RESTORE_TASK'; id: string }
-  | { type: 'RENAME_TASK'; id: string; title: string };
+  | { type: 'RENAME_TASK'; id: string; title: string }
+  /**
+   * Fills the app with a made-up couple of months (v5 Block C), as they would
+   * look on `today` — replacing any sample already here, never touching what
+   * you added. Today is part of the intent rather than read from the clock,
+   * so the reducer stays pure. See lib/sample.ts.
+   */
+  | { type: 'LOAD_SAMPLE'; today: DateKey }
+  /** Removes the sample records, and only them. Nothing of yours is touched. */
+  | { type: 'CLEAR_SAMPLE' };
 
 /**
  * An intent with everything non-deterministic already decided: the time it
@@ -401,6 +411,25 @@ export function habibitReducer(state: HabibitState, action: HabibitAction): Habi
         ),
       };
     }
+
+    case 'LOAD_SAMPLE': {
+      /*
+       * Removed outright, not tombstoned, and the same for CLEAR_SAMPLE: a
+       * sample record never reaches an account, so there is no other device
+       * that needs to hear it went. A fresh copy replaces the old one, so a
+       * second tap can't double it up.
+       */
+      const sample = sampleState(action.today);
+      const mine = withoutSample(state);
+      return {
+        habits: [...mine.habits, ...sample.habits],
+        tasks: [...mine.tasks, ...sample.tasks],
+        completions: { ...mine.completions, ...sample.completions },
+      };
+    }
+
+    case 'CLEAR_SAMPLE':
+      return withoutSample(state);
 
     default:
       return state;
