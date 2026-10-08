@@ -86,6 +86,11 @@ export function touchedBy(action: HabibitAction): OutboxKey | null {
       return `task:${action.id}`;
     // Not edits someone made on this device: they arrive from storage, from
     // the account, or empty it on sign-out.
+    //
+    // The sample (v5 Block C) is never uploaded either: it is made-up data,
+    // cleared before any account sees it (store/SyncProvider.tsx).
+    case 'LOAD_SAMPLE':
+    case 'CLEAR_SAMPLE':
     case 'HYDRATE':
     case 'MERGE_REMOTE':
     case 'CLEAR_DEVICE':

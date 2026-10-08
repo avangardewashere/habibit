@@ -5,6 +5,8 @@ import { Composer } from '@/components/ui/Composer';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ItemRow } from '@/components/ui/ItemRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Welcome } from '@/components/welcome/Welcome';
+import { useAccount } from '@/lib/auth/session';
 import { useToday } from '@/lib/useToday';
 import { useHabibit } from '@/store/HabibitProvider';
 import { useUndo } from '@/store/UndoProvider';
@@ -37,6 +39,7 @@ import { WeekdayHeader } from './WeekdayHeader';
  */
 export function HabitSection() {
   const { state, dispatch } = useHabibit();
+  const account = useAccount();
   const { offer } = useUndo();
   const today = useToday();
   const [arrangingRequested, setArranging] = useState(false);
@@ -163,9 +166,14 @@ export function HabitSection() {
           archived.length > 0 ? (
             <EmptyState title="Nothing on today's list" hint="Your archived habits are below, or start a new one." />
           ) : (
-            <EmptyState
-              title="No habits yet"
-              hint="Start with one small thing. It resets every morning."
+            /*
+             * v5 Block C: a real welcome rather than "No habits yet" — see the
+             * app with sample habits, or start from a common one.
+             */
+            <Welcome
+              canSample={account.status !== 'signed-in'}
+              onSample={() => today && dispatch({ type: 'LOAD_SAMPLE', today })}
+              onStart={(title) => dispatch({ type: 'ADD_HABIT', title })}
             />
           )
         ) : arranging ? (

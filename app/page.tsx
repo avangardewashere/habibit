@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header';
 import { SaveWarning } from '@/components/layout/SaveWarning';
 import { Screens } from '@/components/layout/Screens';
 import { TaskSection } from '@/components/task/TaskSection';
+import { SampleBanner } from '@/components/welcome/SampleBanner';
 
 export default function Home() {
   return (
@@ -17,6 +18,7 @@ export default function Home() {
         today={
           <>
             <Header />
+            <SampleBanner />
             <SaveWarning />
             <HabitSection />
             <TaskSection />

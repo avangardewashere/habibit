@@ -77,7 +77,13 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     // A local run reuses a server you already started; CI always builds fresh.
     reuseExistingServer: !isCI,
-    timeout: 240_000,
+    /*
+     * Building and starting the app. Four minutes is plenty normally; on this
+     * 16 GB laptop with other sessions open the build alone has taken longer
+     * (4m06s, v5 Block C), so a slow machine can ask for more, as it can for a
+     * different port. CI keeps the default.
+     */
+    timeout: Number(process.env.HABIBIT_E2E_SERVER_TIMEOUT ?? 240_000),
     env: {
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: TEST_VAPID_PUBLIC_KEY,
       ...(supabase
